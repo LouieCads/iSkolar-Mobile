@@ -1,0 +1,46 @@
+version: "3.9"
+
+services:
+  # Backend
+  backend:
+    build: ./server
+    container_name: iskolar-backend
+    restart: always
+    ports:
+      - "5000:5000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:password@db:5432/iskolarmobile_db
+      - DB_HOST=db
+      - DB_NAME=iskolarmobile_db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=Louiecads21@postgres
+      - POSTGRES_PORT=5432
+    depends_on:
+      - db
+
+  # Frontend (React Native + Expo)
+  frontend:
+    build: ./client
+    container_name: iskolar-frontend
+    restart: always
+    ports:
+      - "8081:8081"
+    depends_on:
+      - backend
+
+  # PostgreSQL Database
+  db:
+    image: postgres:15-alpine
+    container_name: iskolar-db
+    restart: always
+    environment:
+      POSTGRES_USER: postgres 
+      POSTGRES_PASSWORD: Louiecads21@postgres
+      POSTGRES_DB: iskolarmobile_db
+    ports:
+      - "5433:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+
+volumes:
+  pgdata:
