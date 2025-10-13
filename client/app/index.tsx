@@ -1,4 +1,4 @@
-// app/index.tsx - Landing Page with Animations
+// app/index.tsx
 import { View, Text, Image, Pressable, StyleSheet, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -132,7 +132,7 @@ export default function LandingPage() {
           }}
         >
           <Pressable
-            // onPress={() => router.push('(auth)/register')}
+            onPress={() => router.push('/register')}
             style={styles.button}
           >
             <Text style={styles.buttonText}>Get Started</Text>
@@ -148,15 +148,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
+    height: 200,
     paddingTop: 65,
-    paddingBottom: 45,
     alignItems: 'center',
   },
   headerTitle: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 32,
     color: '#F0F7FF',
-    marginBottom: 4,
   },
   headerSubtitle: {
     fontFamily: 'BreeSerif_400Regular',
@@ -168,7 +167,8 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F7FF',
     alignItems: 'center',
     justifyContent: 'space-between',
-    borderRadius: 24,
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
     paddingVertical: 90,
     paddingHorizontal: 24,
   },
