@@ -17,6 +17,7 @@ services:
       - POSTGRES_PORT=5432
     depends_on:
       - db
+    command: npm run dev  
 
   # Frontend (React Native + Expo)
   frontend:
@@ -27,6 +28,7 @@ services:
       - "8081:8081"
     depends_on:
       - backend
+    command: npx expo start
 
   # PostgreSQL Database
   db:
@@ -39,8 +41,3 @@ services:
       POSTGRES_DB: iskolarmobile_db
     ports:
       - "5433:5432"
-    volumes:
-      - pgdata:/var/lib/postgresql/data
-
-volumes:
-  pgdata:
