@@ -1,7 +1,8 @@
 import express from "express";
 import dotenv from "dotenv";
 import cors from "cors";
-import { Pool } from "pg";
+import sequelize from "./config/database";
+import authRoutes from "./routes/auth.routes";
 
 dotenv.config();
 const app = express();
@@ -12,24 +13,21 @@ const PORT = process.env.PORT || 5000;
 app.use(express.json());
 app.use(cors());
 
-// PostgreSQL connection
-const pool = new Pool({
-  user: process.env.POSTGRES_USER,
-  host: process.env.DB_HOST,
-  database: process.env.DB_NAME,
-  password: process.env.POSTGRES_PASSWORD,
-  port: Number(process.env.POSTGRES_PORT) || 5432,
-});
+// Routes
+app.use("/auth", authRoutes);
 
-// Test connection
-pool
-  .connect()
-  .then((client) => {
+// Test connection and sync database
+sequelize
+  .authenticate()
+  .then(() => {
     console.log("✅ PostgreSQL connected");
-    client.release();
+    return sequelize.sync({ alter: true });
+  })
+  .then(() => {
+    console.log("✅ Database & tables synced");
   })
   .catch((err) => {
-    console.error("❌ PostgreSQL connection error:", err);
+    console.error("❌ Database error:", err);
   });
 
 app.listen(PORT, () => {

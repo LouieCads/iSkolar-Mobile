@@ -11,7 +11,7 @@ services:
     environment:
       - DATABASE_URL=postgresql://postgres:password@db:5432/iskolarmobile_db
       - DB_HOST=db
-      - DB_NAME=iskolarmobile_db
+      - DB_NAME=iskolarmobile
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=Louiecads21@postgres
       - POSTGRES_PORT=5432
@@ -38,6 +38,6 @@ services:
     environment:
       POSTGRES_USER: postgres 
       POSTGRES_PASSWORD: Louiecads21@postgres
-      POSTGRES_DB: iskolarmobile_db
+      POSTGRES_DB: iskolarmobile
     ports:
       - "5433:5432"
