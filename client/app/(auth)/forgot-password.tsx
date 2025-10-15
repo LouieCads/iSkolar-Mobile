@@ -1,12 +1,90 @@
-import { View, Text, Image, Pressable, StyleSheet, TextInput } from 'react-native';
+import { View, Text, Pressable, StyleSheet, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import { useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import Toast from '@/components/toast';
+
+// Validation 
+const forgotPasswordSchema = z.object({
+  email: z.string()
+    .nonempty("Email is required")
+    .email("Invalid email format"),
+});
+
+type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+
+const EXPO_API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function ForgotPasswordPage() {
   const router = useRouter();
-  const [rememberMe, setRememberMe] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState({
+    visible: false,
+    type: 'success' as 'success' | 'error',
+    title: '',
+    message: '',
+  });
+
+  const { control, handleSubmit, formState: { errors } } = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: {
+      email: '',
+    },
+  });
+
+  const showToast = (type: 'success' | 'error', title: string, message: string) => {
+    setToast({ visible: true, type, title, message });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, visible: false }));
+    }, 2000);
+  };
+
+  // API 
+  const onSubmit = async (data: ForgotPasswordFormData) => {
+    try {
+      setLoading(true);
+      
+      const response = await fetch(`${EXPO_API_URL}/auth/send-otp`, {
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          email: data.email,
+        }),
+      });
+
+      const result = await response.json();
+      
+      if (response.ok) {
+        // Store token if needed
+        // await AsyncStorage.setItem('authToken', result.token);
+        
+        showToast('success', 'Success', result.message || 'OTP sent successfully to your email');
+        setTimeout(() => {
+          router.push({
+            pathname: '/verify-otp',
+            params: { email: data.email }
+          });
+        }, 1500);
+      } else {
+        showToast('error', 'Sending OTP Failed', result.message || 'Error sending OTP. Please try again later.');
+      }
+    } catch (error) {
+      console.error("Login error:", error);
+      showToast(
+        'error',
+        'Connection Error',
+        `Failed to connect to server at ${EXPO_API_URL}`
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
   
   return (
     <LinearGradient
@@ -15,19 +93,27 @@ export default function ForgotPasswordPage() {
       end={{ x: 1, y: 0.5 }}
       style={styles.container}
     >
+      {/* Toast Notification */}
+      <Toast
+        visible={toast.visible}
+        type={toast.type}
+        title={toast.title}
+        message={toast.message}
+      />
+
       {/* Header */}
       <View style={styles.header}>
-        {/* Back Button */}
+        {/* Back */}
         <Pressable style={styles.backButton} onPress={() => router.push('/login')}>
           <MaterialIcons name="arrow-back" size={24} color="#F0F7FF" />
         </Pressable>
         <Text style={styles.headerTitle}>iSkolar</Text>
       </View>
 
-      {/* Content Card */}
+      {/* Content */}
       <View style={styles.content}>
         <View style={styles.formContainer}>
-          {/* Title Section */}
+          {/* Title */}
           <View style={styles.titleSection}>
             <Text style={styles.title}>Forgot Password</Text>
             <View style={styles.noteRow}>
@@ -35,24 +121,42 @@ export default function ForgotPasswordPage() {
             </View>
           </View>
 
-          {/* Email Input */}
+          {/* Email */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Email</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter email"
-              value=""
-              keyboardType="email-address"
-              autoCapitalize="none"
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, value } }) => (
+                <TextInput
+                  style={[styles.input, errors.email && styles.inputError]}
+                  placeholder="Enter email"
+                  placeholderTextColor="#9CA3AF"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  autoCorrect={false}
+                  value={value}
+                  onChangeText={onChange}
+                  editable={!loading}
+                />
+              )}
             />
+            {errors.email && (
+              <Text style={styles.errorText}>{errors.email.message}</Text>
+            )}
           </View>
 
-          {/* Send Code Button */}
+          {/* Send OTP */}
           <Pressable
-            onPress={() => router.push('/verify-otp')}
-            style={styles.button}
+            onPress={handleSubmit(onSubmit)}
+            style={[styles.button, loading && styles.buttonDisabled]}
+            disabled={loading}
           >
-            <Text style={styles.buttonText}>Send OTP</Text>
+             {loading ? (
+              <Text style={styles.buttonText}>Sending...</Text>
+            ) : (
+              <Text style={styles.buttonText}>Send OTP</Text>
+            )}
           </Pressable>
         </View>
       </View>
@@ -89,7 +193,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F7FF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingVertical: 24,
+    paddingVertical: 20,
     paddingHorizontal: 24,
   },
   formContainer: {
@@ -135,6 +239,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#C4CBD5',
   },
+  inputError: {
+    borderColor: '#EF4444',
+    borderWidth: 1.5,
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 11,
+    marginTop: 4,
+    marginLeft: 4,
+    fontFamily: 'BreeSerif_400Regular',
+  },
   button: {
     backgroundColor: '#3A52A6',
     borderRadius: 12,
@@ -146,6 +261,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: '#F0F7FF',

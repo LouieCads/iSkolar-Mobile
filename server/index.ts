@@ -10,7 +10,10 @@ const app = express();
 const PORT = process.env.PORT || 5000;
 
 app.use(express.json());
-app.use(cors());
+app.use(cors({
+  origin: '*', 
+  credentials: true
+}));
 
 // Routes
 app.use("/auth", authRoutes);
@@ -29,5 +32,7 @@ sequelize
   });
 
 app.listen(PORT, () => {
-  console.log(`🚀 Server running on http://localhost:${PORT}`);
+  console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
 });
+
+

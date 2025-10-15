@@ -132,7 +132,7 @@ export default function LandingPage() {
           }}
         >
           <Pressable
-            onPress={() => router.push('/register')}
+            onPress={() => router.push('/login')}
             style={styles.button}
           >
             <Text style={styles.buttonText}>Get Started</Text>

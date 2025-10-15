@@ -1,12 +1,104 @@
-import { View, Text, Image, Pressable, StyleSheet, TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { View, Text, Pressable, StyleSheet, TextInput } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useForm, Controller } from 'react-hook-form';
+import { z } from 'zod';
+import { zodResolver } from '@hookform/resolvers/zod';
+import Toast from '@/components/toast';
+
+// Validation 
+const resetPasswordSchema = z.object({
+  password: z.string()
+    .nonempty("Password is required")
+    .min(8, "Password must be at least 8 characters")
+    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+    .regex(/[0-9]/, "Password must contain at least one number")
+    .regex(/[@$!%*?&]/, "Password must contain at least one special character (@$!%*?&)"),
+  confirmPassword: z.string()
+    .nonempty("Please confirm your password"),
+}).refine((data) => data.password === data.confirmPassword, {
+  message: "Passwords do not match",
+  path: ["confirmPassword"],
+});
+
+type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
+
+const EXPO_API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function ResetPasswordPage() {
   const router = useRouter();
-  
+  const params = useLocalSearchParams();
+  const email = params.email as string; 
+
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState({
+    visible: false,
+    type: 'success' as 'success' | 'error',
+    title: '',
+    message: '',
+  });
+
+  const { control, handleSubmit, formState: { errors } } = useForm<ResetPasswordFormData>({
+    resolver: zodResolver(resetPasswordSchema),
+    defaultValues: {
+      password: '',
+      confirmPassword: '',
+    },
+  });
+
+  const showToast = (type: 'success' | 'error', title: string, message: string) => {
+    setToast({ visible: true, type, title, message });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, visible: false }));
+    }, 2000);
+  };
+
+  const onSubmit = async (data: ResetPasswordFormData) => {
+    if (!email) {
+      showToast('error', 'Error', 'Email not found. Please start the password reset process again.');
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch(`${EXPO_API_URL}/auth/reset-password`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          password: data.password,
+          confirmPassword: data.confirmPassword,
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        showToast('success', 'Success', result.message || 'Password reset successful! Please login');
+        setTimeout(() => {
+          router.push('/login');
+        }, 2000);
+      } else {
+        showToast('error', 'Reset Failed', result.message || 'Failed to reset password. Please try again later.');
+      }
+    } catch (error) {
+      console.error('Reset password error:', error);
+      showToast(
+        'error',
+        'Connection Error',
+        `Failed to connect to server at ${EXPO_API_URL}`
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <LinearGradient
       colors={['#3A52A6', '#3A52A6', '#607EF2']}
@@ -14,10 +106,22 @@ export default function ResetPasswordPage() {
       end={{ x: 1, y: 0.5 }}
       style={styles.container}
     >
+      {/* Toast Notification */}
+      <Toast
+        visible={toast.visible}
+        type={toast.type}
+        title={toast.title}
+        message={toast.message}
+      />
+
       {/* Header */}
       <View style={styles.header}>
         {/* Back Button */}
-        <Pressable style={styles.backButton} onPress={() => router.push('/verify-otp')}>
+        <Pressable 
+          style={styles.backButton} 
+          onPress={() => router.back()}
+          disabled={loading}
+        >
           <MaterialIcons name="arrow-back" size={24} color="#F0F7FF" />
         </Pressable>
         <Text style={styles.headerTitle}>iSkolar</Text>
@@ -29,36 +133,84 @@ export default function ResetPasswordPage() {
           {/* Title Section */}
           <View style={styles.titleSection}>
             <Text style={styles.title}>Reset Password</Text>
+            <Text style={styles.subtitle}>Create a new secure password</Text>
           </View>
 
           {/* Password Input */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Enter new password"
-              value=""
-              secureTextEntry
+            <Text style={styles.label}>New Password</Text>
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, value } }) => (
+                <View style={styles.passwordInputWrapper}>
+                  <TextInput
+                    style={[styles.input, errors.password && styles.inputError]}
+                    placeholder="Enter new password"
+                    placeholderTextColor="#9CA3AF"
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    value={value}
+                    onChangeText={onChange}
+                    editable={!loading}
+                  />
+                </View>
+              )}
             />
+            {errors.password && (
+              <Text style={styles.errorText}>{errors.password.message}</Text>
+            )}
           </View>
 
           {/* Confirm Password Input */}
           <View style={styles.inputContainer}>
             <Text style={styles.label}>Confirm Password</Text>
-            <TextInput
-              style={styles.input}
-              placeholder="Confirm password"
-              value=""
-              secureTextEntry
+            <Controller
+              control={control}
+              name="confirmPassword"
+              render={({ field: { onChange, value } }) => (
+                <View style={styles.passwordInputWrapper}>
+                  <TextInput
+                    style={[styles.input, errors.confirmPassword && styles.inputError]}
+                    placeholder="Confirm new password"
+                    placeholderTextColor="#9CA3AF"
+                    secureTextEntry
+                    autoCapitalize="none"
+                    autoCorrect={false}
+                    value={value}
+                    onChangeText={onChange}
+                    editable={!loading}
+                  />
+                </View>
+              )}
             />
+            {errors.confirmPassword && (
+              <Text style={styles.errorText}>{errors.confirmPassword.message}</Text>
+            )}
+          </View>
+
+          {/* Password Requirements */}
+          <View style={styles.requirementsContainer}>
+            <Text style={styles.requirementsTitle}>Password must contain:</Text>
+            <Text style={styles.requirementText}>• At least 8 characters</Text>
+            <Text style={styles.requirementText}>• One uppercase letter (A-Z)</Text>
+            <Text style={styles.requirementText}>• One lowercase letter (a-z)</Text>
+            <Text style={styles.requirementText}>• One number (0-9)</Text>
+            <Text style={styles.requirementText}>• One special character (@$!%*?&)</Text>
           </View>
 
           {/* Reset Button */}
           <Pressable
-            onPress={() => router.push('/login')}
-            style={styles.button}
+            onPress={handleSubmit(onSubmit)}
+            style={[styles.button, loading && styles.buttonDisabled]}
+            disabled={loading}
           >
-            <Text style={styles.buttonText}>Reset Password</Text>
+            {loading ? (
+              <Text style={styles.buttonText}>Resetting...</Text>
+            ) : (
+              <Text style={styles.buttonText}>Reset Password</Text>
+            )}
           </Pressable>
         </View>
       </View>
@@ -95,7 +247,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F7FF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingVertical: 24,
+    paddingVertical: 20,
     paddingHorizontal: 24,
   },
   formContainer: {
@@ -111,6 +263,11 @@ const styles = StyleSheet.create({
     color: '#111827',
     marginBottom: 4,
   },
+  subtitle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#718096',
+  },
   inputContainer: {
     marginBottom: 20,
   },
@@ -121,16 +278,52 @@ const styles = StyleSheet.create({
     marginBottom: 8,
     marginLeft: 4,
   },
+  passwordInputWrapper: {
+    position: 'relative',
+  },
   input: {
     backgroundColor: '#F0F7FF',
     borderRadius: 12,
     paddingHorizontal: 16,
     paddingVertical: 14,
+    paddingRight: 48,
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#111827',
     borderWidth: 1,
     borderColor: '#C4CBD5',
+  },
+  inputError: {
+    borderColor: '#EF4444',
+    borderWidth: 1.5,
+  },
+  errorText: {
+    color: '#EF4444',
+    fontSize: 11,
+    marginTop: 4,
+    marginLeft: 4,
+    fontFamily: 'BreeSerif_400Regular',
+  },
+  requirementsContainer: {
+    backgroundColor: '#E0E7FF',
+    borderRadius: 12,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: '#C7D2FE',
+  },
+  requirementsTitle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#3A52A6',
+    fontWeight: '600',
+    marginBottom: 8,
+  },
+  requirementText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#4A5568',
+    marginBottom: 4,
   },
   button: {
     backgroundColor: '#3A52A6',
@@ -143,6 +336,9 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: '#F0F7FF',

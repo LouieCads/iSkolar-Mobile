@@ -1,12 +1,122 @@
-import { View, Text, Image, Pressable, StyleSheet, TextInput } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useState } from 'react';
+import { View, Text, Pressable, StyleSheet, TextInput } from 'react-native';
+import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useState } from 'react';
+import Toast from '@/components/toast';
+
+const EXPO_API_URL = process.env.EXPO_PUBLIC_API_URL;
 
 export default function VerifyOTPPage() {
   const router = useRouter();
+  const params = useLocalSearchParams();
+  const email = params.email as string; 
   
+  const [otp, setOtp] = useState('');
+  const [isVerifying , setIsVerifying] = useState(false);
+  const [isResending, setIsResending] = useState(false);
+  const [toast, setToast] = useState({
+    visible: false,
+    type: 'success' as 'success' | 'error',
+    title: '',
+    message: '',
+  });
+
+  const showToast = (type: 'success' | 'error', title: string, message: string) => {
+    setToast({ visible: true, type, title, message });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, visible: false }));
+    }, 2000);
+  };
+
+  const handleVerifyOTP = async () => {
+    if (!otp.trim()) {
+      showToast('error', 'Error', 'Please enter OTP code');
+      return;
+    }
+
+    if (otp.length !== 6) {
+      showToast('error', 'Error', 'OTP must be 6 digits');
+      return;
+    }
+
+    if (!email) {
+      showToast('error', 'Error', 'Email not found. Please go back and try again.');
+      return;
+    }
+
+    try {
+      setIsVerifying(true);
+
+      const response = await fetch(`${EXPO_API_URL}/auth/verify-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          email: email,
+          otp: otp.trim(),
+        }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        showToast('success', 'Success', result.message || 'OTP verified successfully!');
+        setTimeout(() => {
+          router.push({
+            pathname: '/reset-password',
+            params: { email: email }
+          });
+        }, 1500);
+      } else {
+        showToast('error', 'Verification Failed', result.message || 'Invalid OTP code');
+      }
+    } catch (error) {
+      console.error('OTP verification error:', error);
+      showToast(
+        'error',
+        'Connection Error',
+        `Failed to connect to server at ${EXPO_API_URL}`
+      );
+    } finally {
+      setIsVerifying(false);
+    }
+  };
+
+  const handleResendOTP = async () => {
+    if (!email) {
+      showToast('error', 'Error', 'Email not found. Please go back and try again.');
+      return;
+    }
+
+    try {
+      setIsResending(true);
+
+      const response = await fetch(`${EXPO_API_URL}/auth/send-otp`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ email: email }),
+      });
+
+      const result = await response.json();
+
+      if (response.ok) {
+        showToast('success', 'Success', 'New OTP sent to your email');
+        setOtp(''); // Clear previous OTP
+      } else {
+        showToast('error', 'Error', result.message || 'Failed to resend OTP');
+      }
+    } catch (error) {
+      console.error('Resend OTP error:', error);
+      showToast('error', 'Connection Error', 'Failed to resend OTP');
+    } finally {
+      setIsResending(false);
+    }
+  };
+
   return (
     <LinearGradient
       colors={['#3A52A6', '#3A52A6', '#607EF2']}
@@ -14,40 +124,79 @@ export default function VerifyOTPPage() {
       end={{ x: 1, y: 0.5 }}
       style={styles.container}
     >
+      {/* Toast Notification */}
+      <Toast
+        visible={toast.visible}
+        type={toast.type}
+        title={toast.title}
+        message={toast.message}
+      />
+
       {/* Header */}
       <View style={styles.header}>
-        {/* Back Button */}
-        <Pressable style={styles.backButton} onPress={() => router.push('/forgot-password')}>
+        {/* Back */}
+        <Pressable 
+          style={styles.backButton} 
+          onPress={() => router.push('/forgot-password')}
+          disabled={isVerifying || isResending}
+        >
           <MaterialIcons name="arrow-back" size={24} color="#F0F7FF" />
         </Pressable>
         <Text style={styles.headerTitle}>iSkolar</Text>
       </View>
 
-      {/* Content Card */}
+      {/* Content */}
       <View style={styles.content}>
         <View style={styles.formContainer}>
-          {/* Title Section */}
+          {/* Title */}
           <View style={styles.titleSection}>
             <Text style={styles.title}>Verify OTP</Text>
+            <Text style={styles.subtitle}>
+              Enter the 6-digit code sent to
+            </Text>
+            <Text style={styles.emailText}>{email}</Text>
           </View>
 
-          {/* OTP Input */}
+          {/* OTP */}
           <View style={styles.inputContainer}>
-            <Text style={styles.label}>OTP</Text>
+            <Text style={styles.label}>OTP Code</Text>
             <TextInput
               style={styles.input}
-              placeholder="Enter OTP"
-              value=""
+              placeholder="000000"
+              placeholderTextColor="#9CA3AF"
+              value={otp}
+              onChangeText={setOtp}
+              keyboardType="numeric"
+              maxLength={6}
               autoCapitalize="none"
+              autoCorrect={false}
+              editable={!isVerifying}
             />
           </View>
 
-          {/* Verify Button */}
+          {/* Resend */}
+          <View style={styles.resendContainer}>
+            <Text style={styles.resendText}>Didn't receive the code? </Text>
+            <Pressable onPress={handleResendOTP} disabled={isResending}>
+              <Text style={[styles.resendLink, isResending && styles.linkDisabled]}>
+                Resend OTP
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* Verify */}
           <Pressable
-            onPress={() => router.push('/reset-password')}
-            style={styles.button}
+            onPress={handleVerifyOTP}
+            style={[styles.button, (isVerifying || isResending) && styles.buttonDisabled]}
+            disabled={isVerifying || isResending}
           >
-            <Text style={styles.buttonText}>Verify</Text>
+            {isVerifying ? (
+              <Text style={styles.buttonText}>Verifying...</Text>
+            ) : isResending ? (
+              <Text style={styles.buttonText}>Resending...</Text>
+            ) : (
+              <Text style={styles.buttonText}>Verify</Text>
+            )}
           </Pressable>
         </View>
       </View>
@@ -84,7 +233,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F7FF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingVertical: 24,
+    paddingVertical: 20,
     paddingHorizontal: 24,
   },
   formContainer: {
@@ -98,7 +247,19 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 24,
     color: '#111827',
+    marginBottom: 8,
+  },
+  subtitle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#718096',
     marginBottom: 4,
+  },
+  emailText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#3A52A6',
+    fontWeight: '600',
   },
   inputContainer: {
     marginBottom: 20,
@@ -113,25 +274,35 @@ const styles = StyleSheet.create({
   input: {
     backgroundColor: '#F0F7FF',
     borderRadius: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 14,
+    paddingHorizontal: 75,
+    paddingVertical: 12,
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 12,
+    fontSize: 24,
     color: '#111827',
     borderWidth: 1,
     borderColor: '#C4CBD5',
+    textAlign: 'center',
+    letterSpacing: 8,
+  },
+    resendContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-start',
+    alignItems: 'center',
+    marginBottom: 20,
   },
   button: {
     backgroundColor: '#3A52A6',
     borderRadius: 12,
     paddingVertical: 15,
     alignItems: 'center',
-    marginTop: 8,
     shadowColor: '#4A5FB5',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
     elevation: 4,
+  },
+  buttonDisabled: {
+    opacity: 0.6,
   },
   buttonText: {
     color: '#F0F7FF',
@@ -139,5 +310,19 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     letterSpacing: 0.5,
+  },
+  resendText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#718096',
+  },
+  resendLink: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#3A52A6',
+    textDecorationLine: 'underline',
+  },
+  linkDisabled: {
+    opacity: 0.5,
   },
 });
