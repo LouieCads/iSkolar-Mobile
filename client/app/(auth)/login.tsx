@@ -7,6 +7,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Toast from '@/components/toast';
+import LoadingScreen from '@/components/loading-screen';
 
 // Validation 
 const loginSchema = z.object({
@@ -24,6 +25,7 @@ const EXPO_API_URL = process.env.EXPO_PUBLIC_API_URL;
 export default function LoginPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [toast, setToast] = useState({
     visible: false,
@@ -69,11 +71,14 @@ export default function LoginPage() {
       if (response.ok) {
         // Store token if needed
         // await AsyncStorage.setItem('authToken', result.token);
-        
+
         showToast('success', 'Success', result.message || 'Login successful!');
-        // setTimeout(() => {
-        //   router.push('/welcome'); 
-        // }, 2000);
+        
+        setShowLoadingScreen(true);
+
+        setTimeout(() => {
+          router.push('../(onboarding)/welcome'); 
+        }, 1750);
       } else {
         showToast('error', 'Login Failed', result.message || 'Invalid credentials');
       }
@@ -88,6 +93,10 @@ export default function LoginPage() {
       setLoading(false);
     }
   };
+
+  if (showLoadingScreen) {
+    return <LoadingScreen />;
+  }
 
   return (
     <LinearGradient
