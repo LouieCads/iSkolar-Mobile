@@ -31,6 +31,7 @@ export default function WelcomePage() {
 
   return (
     <View style={styles.container}>
+      {/* Logo */}
       <Animated.View style={[styles.logoContainer, { opacity: logoOpacity }]}>
         <Image 
           source={require('../../assets/images/iskolar.png')} 
@@ -38,14 +39,16 @@ export default function WelcomePage() {
         />
       </Animated.View>
 
+      {/* Welcome */}
       <Animated.View style={{ opacity: textOpacity }}>
         <Text style={styles.title}>Welcome to iSkolar</Text>
         <Text style={styles.tagline}>Connecting Students and Sponsors</Text>
       </Animated.View>
-
+      
+      {/* Get Started Button */}
       <Animated.View style={{ opacity: buttonOpacity }}>
         <Pressable
-          // onPress={() => router.push('/role-selection')}
+          onPress={() => router.push('/role-selection')}
           style={styles.button}
         >
           <Text style={styles.buttonText}>Get Started</Text>
@@ -71,7 +74,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 30,
+    fontSize: 32,
     textAlign: 'center',
     color: '#3A52A6',
     lineHeight: 28,
