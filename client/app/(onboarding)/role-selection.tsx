@@ -117,7 +117,7 @@ export default function RoleSelectionPage() {
             <View style={styles.iconContainer}>
               <MaterialCommunityIcons
                 name="school"
-                size={38}
+                size={36}
                 color={selectedRole === 'student' ? '#F0F7FF' : '#EFA508'}
               />
             </View>
@@ -158,7 +158,7 @@ export default function RoleSelectionPage() {
             <View style={styles.iconContainer}>
               <MaterialCommunityIcons
                 name="hand-heart"
-                size={38}
+                size={36}
                 color={selectedRole === 'sponsor' ? '#F0F7FF' : '#31D0AA'}
               />
             </View>
@@ -207,16 +207,16 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F7FF',
     paddingTop: 75,
     paddingBottom: 65,
-    paddingHorizontal: 24,
+    paddingHorizontal: 30,
   },
   header: {
     alignItems: 'flex-start',
-    marginBottom: 25,
+    marginBottom: 30,
   },
   backButton: {
     position: 'absolute',
     top: -25,
-    left: -8,
+    left: -6,
     zIndex: 10,
     width: 40,
     height: 40,
@@ -225,7 +225,7 @@ const styles = StyleSheet.create({
   },
   subheader: {
     alignItems: 'center',
-    marginBottom: 25,
+    marginBottom: 24,
   },
   title: {
     fontFamily: 'BreeSerif_400Regular',
@@ -276,7 +276,7 @@ const styles = StyleSheet.create({
   button: {
     backgroundColor: '#3A52A6',
     paddingVertical: 16,
-    paddingHorizontal: 135,
+    paddingHorizontal: 128,
     borderRadius: 12,
     shadowColor: '#3A52A6',
     shadowOffset: { width: 0, height: 4 },

@@ -74,7 +74,7 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 32,
+    fontSize: 30,
     textAlign: 'center',
     color: '#3A52A6',
     lineHeight: 28,

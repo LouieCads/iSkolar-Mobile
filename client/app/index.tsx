@@ -148,8 +148,8 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   header: {
-    height: 200,
-    paddingTop: 65,
+    height: 225,
+    paddingTop: 80,
     alignItems: 'center',
   },
   headerTitle: {
@@ -169,7 +169,8 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingVertical: 90,
+    paddingTop: 75,
+    paddingBottom: 90,
     paddingHorizontal: 24,
   },
   logoContainer: {

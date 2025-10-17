@@ -221,20 +221,6 @@ export default function LoginPage() {
               <Text style={styles.buttonText}>Sign In</Text>
             )}
           </Pressable>
-
-          <View style={styles.dividerContainer}>
-            <View style={styles.dividerLine} />
-            <Text style={styles.dividerText}>Or sign in with</Text>
-            <View style={styles.dividerLine} />
-          </View>
-
-          {/* Google Authentication */}
-          <Pressable style={styles.googleButton} disabled={loading}>
-            <Image 
-              source={require('../../assets/images/google-logo.png')} 
-              style={styles.googleIcon}
-            />
-          </Pressable>
         </View>
       </View>
     </LinearGradient>
@@ -256,13 +242,13 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   header: {
-    height: 200,
+    height: 225,
     alignItems: 'center',
   },
   headerTitle: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 32,
-    paddingTop: 90,
+    paddingTop: 110,
     color: '#F0F7FF',
   },
   content: {
@@ -270,7 +256,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#F0F7FF',
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    paddingVertical: 20,
+    paddingVertical: 25,
     paddingHorizontal: 24,
   },
   formContainer: {
@@ -370,8 +356,8 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     paddingVertical: 15,
     alignItems: 'center',
-    marginTop: 8,
-    shadowColor: '#4A5FB5',
+    marginTop: 15,
+    shadowColor: '#3A52A6',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.3,
     shadowRadius: 8,
@@ -386,42 +372,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     fontWeight: '600',
     letterSpacing: 0.5,
-  },
-  dividerContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginVertical: 28,
-    paddingHorizontal: 20,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: '#D9D9D9',
-  },
-  dividerText: {
-    fontFamily: 'BreeSerif_400Regular',
-    fontSize: 11,
-    color: '#718096',
-    marginHorizontal: 12,
-  },
-  googleButton: {
-    backgroundColor: '#F0F7FF',
-    borderRadius: 50,
-    width: 60,
-    height: 60,
-    alignItems: 'center',
-    justifyContent: 'center',
-    alignSelf: 'center',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 8,
-    elevation: 3,
-    borderWidth: 1,
-    borderColor: '#E5E7EB',
-  },
-  googleIcon: {
-    width: 50,
-    height: 50,
   },
 });
