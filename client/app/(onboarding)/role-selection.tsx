@@ -58,7 +58,10 @@ export default function RoleSelectionPage() {
       showToast('success', 'Role Selected', `You have selected ${roleText} role`);
 
       setTimeout(() => {
-        // router.push('/profile-setup');
+        router.push({
+          pathname: '/profile-setup',
+          params: { role: selectedRole }
+        });
       }, 2000);
     }
   };

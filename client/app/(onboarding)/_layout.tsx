@@ -5,6 +5,7 @@ export default function Onboarding() {
     <Stack screenOptions={{ headerShown: false }}>
       <Stack.Screen name="welcome" />
       <Stack.Screen name="role-selection" />
+      <Stack.Screen name="profile-setup" />
     </Stack>
   );
 } 
