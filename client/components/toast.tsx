@@ -1,7 +1,9 @@
 import React from 'react';
-import { View, Text, StyleSheet } from 'react-native';
+import { View, Text, StyleSheet, Dimensions } from 'react-native';
 import { MotiView, AnimatePresence } from 'moti';
 import { MaterialIcons } from '@expo/vector-icons';
+
+const { width } = Dimensions.get('window');
 
 interface ToastProps {
   visible: boolean;

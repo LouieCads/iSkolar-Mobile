@@ -5,24 +5,46 @@ import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import RNPickerSelect from 'react-native-picker-select';
 import { authService } from '@/services/auth.service';
+import { zodResolver } from '@hookform/resolvers/zod';
+import { useForm, Controller } from 'react-hook-form';
+import { z } from 'zod';
+import Toast from '@/components/toast';
+
+// Student Profile Validation 
+const studentProfileSchema = z.object({
+  full_name: z.string().nonempty("Name is required"),
+  gender: z.string().nonempty("Gender is required"),
+  date_of_birth: z.date(),
+  contact_number: z.string().nonempty("Contact number is required"),
+});
+
+// Sponsor Profile Validation 
+const sponsorProfileSchema = z.object({
+  organization_name: z.string().nonempty("Organization name is required"),
+  organization_type: z.string().nonempty("Organization name is required"),
+  official_email: z.string()
+    .nonempty("Email is required")
+    .email("Invalid email format"),
+  contact_number: z.string().nonempty("Contact number is required"),
+});
+
+type StudentFormData = z.infer<typeof studentProfileSchema>;
+type SponsorFormData = z.infer<typeof sponsorProfileSchema>;
 
 export default function ProfileSetupPage() {
   const router = useRouter();
   const params = useLocalSearchParams();
   const role = params.role as 'student' | 'sponsor';
 
-  // Student fields
-  const [fullName, setFullName] = useState('');
-  const [gender, setGender] = useState('');
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [dateOfBirth, setDateOfBirth] = useState('');
-  const [contactNumber, setContactNumber] = useState('');
-
-  // Sponsor fields
-  const [orgName, setOrgName] = useState('');
-  const [orgType, setOrgType] = useState('');
-  const [officialEmail, setOfficialEmail] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [toast, setToast] = useState({
+    visible: false,
+    type: 'success' as 'success' | 'error',
+    title: '',
+    message: '',
+  });
 
   useEffect(() => {
     const checkUserRole = async () => {
@@ -36,10 +58,8 @@ export default function ProfileSetupPage() {
         const result = await authService.getProfileStatus();
         
         if (!result.success && !result.user?.has_selected_role && !result.user?.role) {
-          router.replace({
-            pathname: '/role-selection',
-          });
-        } 
+          router.replace({ pathname: '/role-selection' });
+        }
       } catch (error) {
         console.error('Error checking user role:', error);
       }
@@ -48,32 +68,94 @@ export default function ProfileSetupPage() {
     checkUserRole();
   }, []);
 
+  // Student form
+  const studentForm = useForm<StudentFormData>({
+    resolver: zodResolver(studentProfileSchema),
+    defaultValues: {
+      full_name: '',
+      gender: '',
+      date_of_birth: new Date(),
+      contact_number: '',
+    },
+  });
+
+  // Sponsor form
+  const sponsorForm = useForm<SponsorFormData>({
+    resolver: zodResolver(sponsorProfileSchema),
+    defaultValues: {
+      organization_name: '',
+      organization_type: '',
+      official_email: '',
+      contact_number: '',
+    },
+  });
+
+  const showToast = (type: 'success' | 'error', title: string, message: string) => {
+    setToast({ visible: true, type, title, message });
+    setTimeout(() => {
+      setToast(prev => ({ ...prev, visible: false }));
+    }, 2000);
+  };
+
   const onChangeDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
     const currentDate = selectedDate || date;
     setShowDatePicker(Platform.OS === 'ios');
     setDate(currentDate);
-
-    const formattedDate = currentDate.toLocaleDateString('en-US', {
-      month: '2-digit',
-      day: '2-digit',
-      year: 'numeric',
-    });
-    setDateOfBirth(formattedDate);
-  };
-
-  const isFormValid = () => {
+    
     if (role === 'student') {
-      return fullName && gender && dateOfBirth && contactNumber;
-    } else {
-      return orgName && orgType && officialEmail && contactNumber;
+      studentForm.setValue('date_of_birth', currentDate);
     }
   };
 
-  const handleComplete = () => {
-    if (isFormValid()) {
-      // Handle form submission
-      console.log('Profile setup complete');
-      // Navigate to next screen
+  const handleComplete = async (data: StudentFormData | SponsorFormData) => {
+    try {
+      setLoading(true);
+
+      if (role === 'student') {
+        const studentData = data as StudentFormData;
+        
+        // Format date to YYYY-MM-DD for backend
+        const formattedDate = studentData.date_of_birth.toISOString().split('T')[0];
+        
+        const result = await authService.setupStudentProfile({
+          full_name: studentData.full_name,
+          gender: studentData.gender,
+          date_of_birth: formattedDate,
+          contact_number: studentData.contact_number,
+        });
+
+        if (result.success) {
+          showToast('success', 'Profile Created', 'Your student profile has been set up successfully');
+          setTimeout(() => {
+            // router.replace('/home');
+          }, 2000);
+        } else {
+          showToast('error', 'Error', result.message);
+        }
+      } else {
+        const sponsorData = data as SponsorFormData;
+        
+        const result = await authService.setupSponsorProfile({
+          organization_name: sponsorData.organization_name,
+          organization_type: sponsorData.organization_type,
+          official_email: sponsorData.official_email,
+          contact_number: sponsorData.contact_number,
+        });
+
+        if (result.success) {
+          showToast('success', 'Profile Created', 'Your sponsor profile has been set up successfully');
+          setTimeout(() => {
+            // router.replace('/scholarship');
+          }, 2000);
+        } else {
+          showToast('error', 'Error', result.message);
+        }
+      }
+    } catch (error) {
+      console.error('Profile setup error:', error);
+      showToast('error', 'Connection Error', 'Failed to connect to server');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -91,8 +173,16 @@ export default function ProfileSetupPage() {
   ];
 
   return (
-    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-      {/* Back Button */}
+    <View style={styles.container}>
+      {/* Toast Notification */}
+      <Toast
+        visible={toast.visible}
+        type={toast.type}
+        title={toast.title}
+        message={toast.message}
+      />
+
+      {/* Back */}
       <Pressable style={styles.backButton} onPress={() => router.back()}>
         <MaterialIcons name="arrow-back" size={22} color="#3A52A6" />
       </Pressable>
@@ -114,31 +204,40 @@ export default function ProfileSetupPage() {
             {/* Full Name */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Full Name</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter full name"
-                placeholderTextColor="#9CA3AF"
-                value={fullName}
-                onChangeText={setFullName}
+              <Controller
+                control={studentForm.control}
+                name="full_name"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={[styles.input, studentForm.formState.errors.full_name && styles.inputError]}
+                    placeholder="Enter full name"
+                    placeholderTextColor="#9CA3AF"
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
               />
+              {studentForm.formState.errors.full_name && (
+                <Text style={styles.errorText}>{studentForm.formState.errors.full_name.message}</Text>
+              )}
             </View>
 
             {/* Gender */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Gender</Text>
-              <RNPickerSelect
-                onValueChange={(value) => setGender(value)}
-                items={genderItems}
-                placeholder={{
-                  label: 'Select gender',
-                  value: null,
-                  color: '#9CA3AF',
-                }}
-                style={pickerSelectStyles}
-                value={gender}
-                useNativeAndroidPickerStyle={false}
-                Icon={() => (
-                  <MaterialIcons name="arrow-drop-down" size={24} color="#3A52A6" />
+              <Controller
+                control={studentForm.control}
+                name="gender"
+                render={({ field: { onChange, value } }) => (
+                  <RNPickerSelect
+                    onValueChange={onChange}
+                    items={genderItems}
+                    placeholder={{ label: 'Select gender', value: '', color: '#9CA3AF' }}
+                    style={pickerSelectStyles}
+                    value={value}
+                    useNativeAndroidPickerStyle={false}
+                    Icon={() => <MaterialIcons name="arrow-drop-down" size={24} color="#3A52A6" />}
+                  />
                 )}
               />
             </View>
@@ -146,37 +245,57 @@ export default function ProfileSetupPage() {
             {/* Date of Birth */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Date of Birth</Text>
-              <Pressable onPress={() => setShowDatePicker(true)}>
-                <TextInput
-                  style={styles.input}
-                  placeholder="MM/DD/YYYY"
-                  placeholderTextColor="#9CA3AF"
-                  value={dateOfBirth}
-                  editable={false}
-                />
-              </Pressable>
-              {showDatePicker && (
-                <DateTimePicker
-                  value={date}
-                  mode="date"
-                  display="default"
-                  onChange={onChangeDate}
-                  maximumDate={new Date()}
-                />
+              <Controller
+                control={studentForm.control}
+                name="date_of_birth"
+                render={({ field: { value } }) => (
+                  <>
+                    <Pressable onPress={() => setShowDatePicker(true)}>
+                      <TextInput
+                        style={[styles.input, studentForm.formState.errors.date_of_birth && styles.inputError]}
+                        placeholder="MM/DD/YYYY"
+                        placeholderTextColor="#9CA3AF"
+                        value={value.toLocaleDateString('en-US')}
+                        editable={false}
+                      />
+                    </Pressable>
+                    {showDatePicker && (
+                      <DateTimePicker
+                        value={value}
+                        mode="date"
+                        display="default"
+                        onChange={onChangeDate}
+                        maximumDate={new Date()}
+                      />
+                    )}
+                  </>
+                )}
+              />
+              {studentForm.formState.errors.date_of_birth && (
+                <Text style={styles.errorText}>{studentForm.formState.errors.date_of_birth.message}</Text>
               )}
             </View>
 
             {/* Contact Number */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Contact Number</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter contact number"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="phone-pad"
-                value={contactNumber}
-                onChangeText={setContactNumber}
+              <Controller
+                control={studentForm.control}
+                name="contact_number"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={[styles.input, studentForm.formState.errors.contact_number && styles.inputError]}
+                    placeholder="Enter contact number"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="phone-pad"
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
               />
+              {studentForm.formState.errors.contact_number && (
+                <Text style={styles.errorText}>{studentForm.formState.errors.contact_number.message}</Text>
+              )}
             </View>
           </>
         ) : (
@@ -184,31 +303,40 @@ export default function ProfileSetupPage() {
             {/* Organization Name */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Organization Name</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter organization name"
-                placeholderTextColor="#9CA3AF"
-                value={orgName}
-                onChangeText={setOrgName}
+              <Controller
+                control={sponsorForm.control}
+                name="organization_name"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={[styles.input, sponsorForm.formState.errors.organization_name && styles.inputError]}
+                    placeholder="Enter organization name"
+                    placeholderTextColor="#9CA3AF"
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
               />
+              {sponsorForm.formState.errors.organization_name && (
+                <Text style={styles.errorText}>{sponsorForm.formState.errors.organization_name.message}</Text>
+              )}
             </View>
 
             {/* Organization Type */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Organization Type</Text>
-              <RNPickerSelect
-                onValueChange={(value) => setOrgType(value)}
-                items={orgTypeItems}
-                placeholder={{
-                  label: 'Select organization type',
-                  value: null,
-                  color: '#9CA3AF',
-                }}
-                style={pickerSelectStyles}
-                value={orgType}
-                useNativeAndroidPickerStyle={false}
-                Icon={() => (
-                  <MaterialIcons name="arrow-drop-down" size={24} color="#3A52A6" />
+              <Controller
+                control={sponsorForm.control}
+                name="organization_type"
+                render={({ field: { onChange, value } }) => (
+                  <RNPickerSelect
+                    onValueChange={onChange}
+                    items={orgTypeItems}
+                    placeholder={{ label: 'Select organization type', value: '', color: '#9CA3AF' }}
+                    style={pickerSelectStyles}
+                    value={value}
+                    useNativeAndroidPickerStyle={false}
+                    Icon={() => <MaterialIcons name="arrow-drop-down" size={24} color="#3A52A6" />}
+                  />
                 )}
               />
             </View>
@@ -216,28 +344,46 @@ export default function ProfileSetupPage() {
             {/* Official Email Address */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Official Email Address</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter official email"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="email-address"
-                autoCapitalize="none"
-                value={officialEmail}
-                onChangeText={setOfficialEmail}
+              <Controller
+                control={sponsorForm.control}
+                name="official_email"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={[styles.input, sponsorForm.formState.errors.official_email && styles.inputError]}
+                    placeholder="Enter official email"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
               />
+              {sponsorForm.formState.errors.official_email && (
+                <Text style={styles.errorText}>{sponsorForm.formState.errors.official_email.message}</Text>
+              )}
             </View>
 
             {/* Contact Number */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Contact Number</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="Enter contact number"
-                placeholderTextColor="#9CA3AF"
-                keyboardType="phone-pad"
-                value={contactNumber}
-                onChangeText={setContactNumber}
+              <Controller
+                control={sponsorForm.control}
+                name="contact_number"
+                render={({ field: { onChange, value } }) => (
+                  <TextInput
+                    style={[styles.input, sponsorForm.formState.errors.contact_number && styles.inputError]}
+                    placeholder="Enter contact number"
+                    placeholderTextColor="#9CA3AF"
+                    keyboardType="phone-pad"
+                    value={value}
+                    onChangeText={onChange}
+                  />
+                )}
               />
+              {sponsorForm.formState.errors.contact_number && (
+                <Text style={styles.errorText}>{sponsorForm.formState.errors.contact_number.message}</Text>
+              )}
             </View>
           </>
         )}
@@ -245,13 +391,18 @@ export default function ProfileSetupPage() {
 
       {/* Button */}
       <Pressable 
-        style={[styles.button, !isFormValid() && styles.buttonDisabled]} 
-        disabled={!isFormValid()}
-        onPress={handleComplete}
+        style={[styles.button, loading && styles.buttonDisabled]} 
+        disabled={loading}
+        onPress={role === 'student' 
+          ? studentForm.handleSubmit(handleComplete)
+          : sponsorForm.handleSubmit(handleComplete)
+        }
       >
-        <Text style={styles.buttonText}>Complete</Text>
+        <Text style={styles.buttonText}>
+          {loading ? 'Saving...' : 'Complete'}
+        </Text>
       </Pressable>
-    </ScrollView>
+    </View>
   );
 }
 
@@ -265,7 +416,7 @@ const styles = StyleSheet.create({
   backButton: {
     marginBottom: 55,
     width: 30,
-    height: 30,
+    height: 35,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -308,6 +459,16 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
     color: '#111827',
+  },
+  inputError: {
+    borderColor: '#EF4444',
+  },
+  errorText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#EF4444',
+    marginTop: 4,
+    marginLeft: 2,
   },
   button: {
     backgroundColor: '#3A52A6',

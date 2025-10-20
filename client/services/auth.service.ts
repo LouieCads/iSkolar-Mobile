@@ -17,12 +17,23 @@ export interface ApiResponse<T = any> {
   data?: T;
 }
 
+export interface StudentProfileData {
+  full_name: string;
+  gender?: string;
+  date_of_birth: string;
+  contact_number: string;
+}
+
+export interface SponsorProfileData {
+  organization_name: string;
+  organization_type?: string;
+  official_email: string;
+  contact_number: string;
+}
+
 class AuthService {
   private readonly TOKEN_KEY = 'authToken';
 
-  /**
-   * Store authentication token securely
-   */
   async storeToken(token: string): Promise<void> {
     try {
       await SecureStore.setItemAsync(this.TOKEN_KEY, token);
@@ -32,9 +43,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Retrieve authentication token
-   */
   async getToken(): Promise<string | null> {
     try {
       return await SecureStore.getItemAsync(this.TOKEN_KEY);
@@ -44,9 +52,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Remove authentication token
-   */
   async removeToken(): Promise<void> {
     try {
       await SecureStore.deleteItemAsync(this.TOKEN_KEY);
@@ -55,17 +60,11 @@ class AuthService {
     }
   }
 
-  /**
-   * Check if user has a valid token
-   */
   async hasValidToken(): Promise<boolean> {
     const token = await this.getToken();
     return token !== null;
   }
 
-  /**
-   * Make authenticated API request
-   */
   async authenticatedRequest<T = any>(
     endpoint: string,
     options: RequestInit = {}
@@ -112,9 +111,6 @@ class AuthService {
     }
   }
 
-  /**
-   * Check user profile status
-   */
   async getProfileStatus(): Promise<{ success: boolean; user?: any; message: string }> {
     const response = await this.authenticatedRequest('/onboarding/profile-status', {
       method: 'POST'
@@ -127,9 +123,6 @@ class AuthService {
     };
   }
 
-  /**
-   * Select user role
-   */
   async selectRole(role: 'student' | 'sponsor'): Promise<{ success: boolean; message: string; currentRole?: string }> {
     const response = await this.authenticatedRequest('/onboarding/select-role', {
       method: 'POST',
@@ -140,6 +133,32 @@ class AuthService {
       success: response.success,
       message: response.message,
       currentRole: response.data?.user?.role
+    };
+  }
+
+  async setupStudentProfile(profileData: StudentProfileData): Promise<{ success: boolean; message: string; student?: any }> {
+    const response = await this.authenticatedRequest('/onboarding/setup-student-profile', {
+      method: 'POST',
+      body: JSON.stringify(profileData)
+    });
+
+    return {
+      success: response.success,
+      message: response.message,
+      student: response.data?.student
+    };
+  }
+
+  async setupSponsorProfile(profileData: SponsorProfileData): Promise<{ success: boolean; message: string; sponsor?: any }> {
+    const response = await this.authenticatedRequest('/onboarding/setup-sponsor-profile', {
+      method: 'POST',
+      body: JSON.stringify(profileData)
+    });
+
+    return {
+      success: response.success,
+      message: response.message,
+      sponsor: response.data?.sponsor
     };
   }
 }
