@@ -5,7 +5,10 @@ import crypto from "crypto";
 import nodemailer from "nodemailer";
 import User from "../models/Users";
 
-const JWT_SECRET = process.env.JWT_SECRET || "secretkey";
+const JWT_SECRET = process.env.JWT_SECRET;
+if (!JWT_SECRET) {
+  throw new Error("JWT_SECRET environment variable is required");
+}
 const otpStore: Map<string, { otp: string; expiresAt: Date; verified: boolean }> = new Map(); // Temporary storage
 
 const PASSWORD_PATTERNS = {
@@ -104,15 +107,21 @@ export const login = async (req: Request, res: Response) => {
     // Generate JWT
     const token = jwt.sign({ 
       id: user.user_id, 
-      email: 
-      user.email 
+      email: user.email,
     }, 
     JWT_SECRET, 
     { expiresIn });
 
+    const expiresInMs = rememberMe 
+      ? 30 * 24 * 60 * 60 * 1000  // 30 days in milliseconds
+      : 24 * 60 * 60 * 1000;       // 1 day in milliseconds
+    
+    const expiryTimestamp = Date.now() + expiresInMs;
+
     return res.status(200).json({
       message: "Login successful!",
       token,
+      expiresAt: expiryTimestamp,
       user: { id: user.user_id, email: user.email },
     });
   } catch (error) {

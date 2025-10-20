@@ -3,7 +3,9 @@ import dotenv from "dotenv";
 import cors from "cors";
 import sequelize from "./config/database";
 import authRoutes from "./routes/auth.routes";
+import onboardingRoutes from "./routes/onboarding.routes";
 
+// Models
 import "./models/Users";
 import "./models/Student";
 import "./models/Sponsor";
@@ -21,6 +23,7 @@ app.use(cors({
 
 // Routes
 app.use("/auth", authRoutes);
+app.use("/onboarding", onboardingRoutes);
 
 sequelize
   .authenticate()

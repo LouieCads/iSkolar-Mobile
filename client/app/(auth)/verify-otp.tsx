@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
 import Toast from '@/components/toast';
+import { authService } from '@/services/auth.service';
 
 const EXPO_API_URL = process.env.EXPO_PUBLIC_API_URL;
 
@@ -15,12 +16,30 @@ export default function VerifyOTPPage() {
   const [otp, setOtp] = useState('');
   const [isVerifying , setIsVerifying] = useState(false);
   const [isResending, setIsResending] = useState(false);
+  const [loading, setLoading] = useState(false);
   const [toast, setToast] = useState({
     visible: false,
     type: 'success' as 'success' | 'error',
     title: '',
     message: '',
   });
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      setLoading(true);
+      try {
+        const hasToken = await authService.hasValidToken();
+        if (hasToken) {
+        // router.replace('/profile-setup');
+        }
+      } catch (e) {
+        // Ignore
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   const showToast = (type: 'success' | 'error', title: string, message: string) => {
     setToast({ visible: true, type, title, message });
@@ -137,7 +156,7 @@ export default function VerifyOTPPage() {
         {/* Back */}
         <Pressable 
           style={styles.backButton} 
-          onPress={() => router.push('/forgot-password')}
+          onPress={() => router.back()}
           disabled={isVerifying || isResending}
         >
           <MaterialIcons name="arrow-back" size={24} color="#F0F7FF" />

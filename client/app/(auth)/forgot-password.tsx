@@ -1,12 +1,13 @@
+import { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
 import { MaterialIcons } from '@expo/vector-icons';
-import { useState } from 'react';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Toast from '@/components/toast';
+import { authService } from '@/services/auth.service';
 
 // Validation 
 const forgotPasswordSchema = z.object({
@@ -28,6 +29,23 @@ export default function ForgotPasswordPage() {
     title: '',
     message: '',
   });
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      setLoading(true);
+      try {
+        const hasToken = await authService.hasValidToken();
+        if (hasToken) {
+        // router.replace('/profile-setup');
+        }
+      } catch (e) {
+        // Ignore
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   const { control, handleSubmit, formState: { errors } } = useForm<ForgotPasswordFormData>({
     resolver: zodResolver(forgotPasswordSchema),
@@ -104,7 +122,7 @@ export default function ForgotPasswordPage() {
       {/* Header */}
       <View style={styles.header}>
         {/* Back */}
-        <Pressable style={styles.backButton} onPress={() => router.push('/login')}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#F0F7FF" />
         </Pressable>
         <Text style={styles.headerTitle}>iSkolar</Text>

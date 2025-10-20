@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, TextInput, Pressable, StyleSheet, Platform, ScrollView } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
 import RNPickerSelect from 'react-native-picker-select';
+import { authService } from '@/services/auth.service';
 
 export default function ProfileSetupPage() {
   const router = useRouter();
@@ -22,6 +23,30 @@ export default function ProfileSetupPage() {
   const [orgName, setOrgName] = useState('');
   const [orgType, setOrgType] = useState('');
   const [officialEmail, setOfficialEmail] = useState('');
+
+  useEffect(() => {
+    const checkUserRole = async () => {
+      try {
+        const hasToken = await authService.hasValidToken();
+        if (!hasToken) {
+          router.push('/login');
+          return;
+        }
+
+        const result = await authService.getProfileStatus();
+        
+        if (!result.success && !result.user?.has_selected_role && !result.user?.role) {
+          router.replace({
+            pathname: '/role-selection',
+          });
+        } 
+      } catch (error) {
+        console.error('Error checking user role:', error);
+      }
+    };
+
+    checkUserRole();
+  }, []);
 
   const onChangeDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
     const currentDate = selectedDate || date;

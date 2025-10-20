@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet, TextInput } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,6 +7,7 @@ import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Toast from '@/components/toast';
+import { authService } from '@/services/auth.service';
 
 // Validation 
 const resetPasswordSchema = z.object({
@@ -40,6 +41,23 @@ export default function ResetPasswordPage() {
     title: '',
     message: '',
   });
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      setLoading(true);
+      try {
+        const hasToken = await authService.hasValidToken();
+        if (hasToken) {
+        // router.replace('/profile-setup');
+        }
+      } catch (e) {
+        // Ignore
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   const { control, handleSubmit, formState: { errors } } = useForm<ResetPasswordFormData>({
     resolver: zodResolver(resetPasswordSchema),

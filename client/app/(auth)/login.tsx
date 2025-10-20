@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, Image, Pressable, StyleSheet, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -8,6 +8,7 @@ import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
 import Toast from '@/components/toast';
 import LoadingScreen from '@/components/loading-screen';
+import { authService } from '@/services/auth.service';
 
 // Validation 
 const loginSchema = z.object({
@@ -33,6 +34,23 @@ export default function LoginPage() {
     title: '',
     message: '',
   });
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      setLoading(true);
+      try {
+        const hasToken = await authService.hasValidToken();
+        if (hasToken) {
+        // router.replace('/welcome');
+        }
+      } catch (e) {
+        // Ignore
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   const { control, handleSubmit, formState: { errors } } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -69,8 +87,7 @@ export default function LoginPage() {
       const result = await response.json();
       
       if (response.ok) {
-        // Store token if needed
-        // await AsyncStorage.setItem('authToken', result.token);
+        await authService.storeToken(result.token);
 
         showToast('success', 'Success', result.message || 'Login successful!');
         
@@ -116,7 +133,7 @@ export default function LoginPage() {
       {/* Header */}
       <View style={styles.header}>
         {/* Back */}
-        <Pressable style={styles.backButton} onPress={() => router.push('/register')}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#F0F7FF" />
         </Pressable>
         <Text style={styles.headerTitle}>iSkolar</Text>

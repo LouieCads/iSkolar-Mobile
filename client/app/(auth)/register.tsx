@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { View, Text, Image, Pressable, StyleSheet, TextInput } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,7 +6,8 @@ import { MaterialIcons } from '@expo/vector-icons';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import { zodResolver } from '@hookform/resolvers/zod';
-import Toast from '@/components/toast'; // Import the Toast component
+import Toast from '@/components/toast'; 
+import { authService } from '@/services/auth.service';
 
 // Validation 
 const registerSchema = z.object({
@@ -39,6 +40,23 @@ export default function RegisterPage() {
     title: '',
     message: '',
   });
+
+  useEffect(() => {
+    const checkAuth = async () => {
+      setLoading(true);
+      try {
+        const hasToken = await authService.hasValidToken();
+        if (hasToken) {
+        // router.replace('/welcome');
+        }
+      } catch (e) {
+        // Ignore
+      } finally {
+        setLoading(false);
+      }
+    };
+    checkAuth();
+  }, []);
 
   const { control, handleSubmit, formState: { errors } } = useForm<RegisterFormData>({
     resolver: zodResolver(registerSchema),
@@ -113,7 +131,7 @@ export default function RegisterPage() {
       {/* Header */}
       <View style={styles.header}>
         {/* Back */}
-        <Pressable style={styles.backButton} onPress={() => router.push('/')}>
+        <Pressable style={styles.backButton} onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={24} color="#F0F7FF" />
         </Pressable>
         <Text style={styles.headerTitle}>iSkolar</Text>
