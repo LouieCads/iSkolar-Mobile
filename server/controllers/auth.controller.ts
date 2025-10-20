@@ -74,7 +74,7 @@ export const register = async (req: Request, res: Response) => {
     return res.status(201).json({ 
       message: "Account created successfully!", 
       user: { 
-        id: newUser.id, 
+        id: newUser.user_id, 
         email: newUser.email 
       } });
   } catch (error) {
@@ -103,7 +103,7 @@ export const login = async (req: Request, res: Response) => {
 
     // Generate JWT
     const token = jwt.sign({ 
-      id: user.id, 
+      id: user.user_id, 
       email: 
       user.email 
     }, 
@@ -113,7 +113,7 @@ export const login = async (req: Request, res: Response) => {
     return res.status(200).json({
       message: "Login successful!",
       token,
-      user: { id: user.id, email: user.email },
+      user: { id: user.user_id, email: user.email },
     });
   } catch (error) {
     console.error("Login error:", error);

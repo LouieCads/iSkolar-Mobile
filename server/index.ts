@@ -4,6 +4,10 @@ import cors from "cors";
 import sequelize from "./config/database";
 import authRoutes from "./routes/auth.routes";
 
+import "./models/Users";
+import "./models/Student";
+import "./models/Sponsor";
+
 dotenv.config();
 const app = express();
 
