@@ -149,7 +149,7 @@ export default function RoleSelectionPage() {
       {/* Header */}
       <View style={styles.header}>
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <MaterialIcons name="arrow-back" size={24} color="#3A52A6" />
+          <MaterialIcons name="keyboard-arrow-left" size={24} color="#3A52A6" />
         </Pressable>
       </View>
 

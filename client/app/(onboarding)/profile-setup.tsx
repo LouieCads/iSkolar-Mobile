@@ -185,7 +185,12 @@ export default function ProfileSetupPage() {
   ];
 
   if (showLoadingScreen) {
-    return <LoadingScreen />;
+    return (
+      <LoadingScreen 
+        title="Unlocking opportunities" 
+        subtitle="Setting up your profile..." 
+      />
+    );
   }
 
   return (
@@ -200,7 +205,7 @@ export default function ProfileSetupPage() {
 
       {/* Back */}
       <Pressable style={styles.backButton} onPress={() => router.back()}>
-        <MaterialIcons name="arrow-back" size={22} color="#3A52A6" />
+        <MaterialIcons name="keyboard-arrow-left" size={22} color="#3A52A6" />
       </Pressable>
 
       {/* Header */}

@@ -146,7 +146,7 @@ export default function ResetPasswordPage() {
           onPress={() => router.back()}
           disabled={loading}
         >
-          <MaterialIcons name="arrow-back" size={24} color="#F0F7FF" />
+          <MaterialIcons name="keyboard-arrow-left" size={24} color="#F0F7FF" />
         </Pressable>
         <Text style={styles.headerTitle}>iSkolar</Text>
       </View>

@@ -138,7 +138,7 @@ export default function RegisterPage() {
       <View style={styles.header}>
         {/* Back */}
         <Pressable style={styles.backButton} onPress={() => router.back()}>
-          <MaterialIcons name="arrow-back" size={24} color="#F0F7FF" />
+          <MaterialIcons name="keyboard-arrow-left" size={24} color="#F0F7FF" />
         </Pressable>
         <Text style={styles.headerTitle}>iSkolar</Text>
       </View>

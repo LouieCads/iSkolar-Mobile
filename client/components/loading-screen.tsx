@@ -2,7 +2,15 @@ import { View, Text, StyleSheet, Animated, Easing } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useEffect, useRef } from 'react';
 
-export default function LoadingScreen() {
+interface LoadingScreenProps {
+  title?: string;
+  subtitle?: string;
+}
+
+export default function LoadingScreen({ 
+  title = 'Signing in', 
+  subtitle = 'Please wait...' 
+}: LoadingScreenProps) {
   const progressAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -22,7 +30,7 @@ export default function LoadingScreen() {
   return (
     <View style={styles.container}>
       <View style={styles.content}>
-        <Text style={styles.title}>Signing in</Text>
+        <Text style={styles.title}>{title}</Text>
         
         <View style={styles.progressBarContainer}>
           <View style={styles.progressBarBackground}>
@@ -37,7 +45,7 @@ export default function LoadingScreen() {
           </View>
         </View>
 
-        <Text style={styles.loadingText}>Please wait...</Text>
+        <Text style={styles.loadingText}>{subtitle}</Text>
       </View>
     </View>
   );
@@ -56,10 +64,11 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 32,
+    fontSize: 24,
     color: '#3A52A6',
-    marginBottom: 20,
+    marginBottom: 15,
     letterSpacing: 0.5,
+    textAlign: 'center',
   },
   progressBarContainer: {
     width: '100%',
@@ -67,7 +76,7 @@ const styles = StyleSheet.create({
   },
   progressBarBackground: {
     width: '100%',
-    height: 16,
+    height: 15,
     backgroundColor: '#E5E7EB',
     borderRadius: 20,
     overflow: 'hidden',
@@ -85,6 +94,7 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#718096',
-    marginTop: 12,
+    marginTop: 5,
+    textAlign: 'center',
   },
 });
