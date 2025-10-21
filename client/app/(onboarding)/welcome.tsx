@@ -1,6 +1,7 @@
 import { View, Text, Image, Pressable, StyleSheet, Animated } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
+import { authService } from '@/services/auth.service';
 
 export default function WelcomePage() {
   const router = useRouter();
@@ -27,6 +28,28 @@ export default function WelcomePage() {
         useNativeDriver: true,
       }),
     ]).start();
+
+    const checkUserRole = async () => {
+      try {
+        const hasToken = await authService.hasValidToken();
+        if (!hasToken) {
+          router.push('/login');
+          return;
+        }
+
+        const result = await authService.getProfileStatus();
+
+        if (result.user?.role === 'student' && result.user?.profile_completed) {
+          router.replace('../(student)/home');
+        } else if (result.user?.role === 'sponsor' && result.user?.profile_completed) {
+          router.replace('../(sponsor)/my-scholarships');
+        }
+      } catch (error) {
+        console.error('Error checking user role:', error);
+      }
+    };
+
+    checkUserRole();
   }, []);
 
   return (

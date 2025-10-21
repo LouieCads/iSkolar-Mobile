@@ -9,6 +9,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, Controller } from 'react-hook-form';
 import { z } from 'zod';
 import Toast from '@/components/toast';
+import LoadingScreen from '@/components/loading-screen';
 
 // Student Profile Validation 
 const studentProfileSchema = z.object({
@@ -39,6 +40,7 @@ export default function ProfileSetupPage() {
   const [date, setDate] = useState(new Date());
   const [showDatePicker, setShowDatePicker] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [showLoadingScreen, setShowLoadingScreen] = useState(false);
   const [toast, setToast] = useState({
     visible: false,
     type: 'success' as 'success' | 'error',
@@ -57,8 +59,16 @@ export default function ProfileSetupPage() {
 
         const result = await authService.getProfileStatus();
         
-        if (!result.success && !result.user?.has_selected_role && !result.user?.role) {
+        if (!result.user?.has_selected_role && !result.user?.role) {
           router.replace({ pathname: '/role-selection' });
+        }
+
+        if (result.user?.profile_completed) {
+          if (result.user?.role === 'student') {
+            router.replace('../(student)/home');
+          } else if (result.user?.role === 'sponsor') {
+            router.replace('../(sponsor)/my-scholarships');
+          }
         }
       } catch (error) {
         console.error('Error checking user role:', error);
@@ -126,8 +136,9 @@ export default function ProfileSetupPage() {
 
         if (result.success) {
           showToast('success', 'Profile Created', 'Your student profile has been set up successfully');
+          setShowLoadingScreen(true);
           setTimeout(() => {
-            // router.replace('/home');
+            router.replace('../(student)/home');
           }, 2000);
         } else {
           showToast('error', 'Error', result.message);
@@ -144,8 +155,9 @@ export default function ProfileSetupPage() {
 
         if (result.success) {
           showToast('success', 'Profile Created', 'Your sponsor profile has been set up successfully');
+          setShowLoadingScreen(true);
           setTimeout(() => {
-            // router.replace('/scholarship');
+            router.replace('../(sponsor)/my-scholarships');
           }, 2000);
         } else {
           showToast('error', 'Error', result.message);
@@ -171,6 +183,10 @@ export default function ProfileSetupPage() {
     { label: 'Educational Institution', value: 'Educational Institution' },
     { label: 'Foundation', value: 'Foundation' },
   ];
+
+  if (showLoadingScreen) {
+    return <LoadingScreen />;
+  }
 
   return (
     <View style={styles.container}>

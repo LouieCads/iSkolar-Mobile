@@ -41,7 +41,13 @@ export default function LoginPage() {
       try {
         const hasToken = await authService.hasValidToken();
         if (hasToken) {
-        // router.replace('/welcome');
+          const result = await authService.getProfileStatus();
+
+          if (result.user?.role === 'student' && result.user?.profile_completed) {
+            router.replace('../(student)/home');
+          } else if (result.user?.role === 'sponsor' && result.user?.profile_completed) {
+            router.replace('../(sponsor)/my-scholarships');
+          }
         }
       } catch (e) {
         // Ignore
@@ -144,7 +150,7 @@ export default function LoginPage() {
         <View style={styles.formContainer}>
           {/* Title */}
           <View style={styles.titleSection}>
-            <Text style={styles.title}>Login</Text>
+            <Text style={styles.title}>Log In</Text>
             <View style={styles.signUpRow}>
               <Text style={styles.signUpText}>Don't have an account? </Text>
               <Pressable onPress={() => router.push('/register')}>
@@ -233,9 +239,9 @@ export default function LoginPage() {
             disabled={loading}
           >
             {loading ? (
-              <Text style={styles.buttonText}>Signing in...</Text>
+              <Text style={styles.buttonText}>Logging in...</Text>
             ) : (
-              <Text style={styles.buttonText}>Sign In</Text>
+              <Text style={styles.buttonText}>Log In</Text>
             )}
           </Pressable>
         </View>

@@ -47,7 +47,13 @@ export default function RegisterPage() {
       try {
         const hasToken = await authService.hasValidToken();
         if (hasToken) {
-        // router.replace('/welcome');
+          const result = await authService.getProfileStatus();
+
+          if (result.user?.role === 'student') {
+            router.replace('../(student)/home');
+          } else if (result.user?.role === 'sponsor') {
+            router.replace('../(sponsor)/my-scholarships');
+          }
         }
       } catch (e) {
         // Ignore

@@ -41,7 +41,7 @@ export default function RoleSelectionPage() {
 
         const result = await authService.getProfileStatus();
         
-        if (result.success && result.user?.has_selected_role && result.user?.role) {
+        if (result.user?.has_selected_role && result.user?.role) {
           router.replace({
             pathname: '/profile-setup',
             params: { role: result.user.role }

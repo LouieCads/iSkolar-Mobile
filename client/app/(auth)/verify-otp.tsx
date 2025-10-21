@@ -30,7 +30,13 @@ export default function VerifyOTPPage() {
       try {
         const hasToken = await authService.hasValidToken();
         if (hasToken) {
-        // router.replace('/profile-setup');
+          const result = await authService.getProfileStatus();
+
+          if (result.user?.role === 'student' && result.user?.profile_completed) {
+            router.replace('../(student)/home');
+          } else if (result.user?.role === 'sponsor' && result.user?.profile_completed) {
+            router.replace('../(sponsor)/my-scholarships');
+          }
         }
       } catch (e) {
         // Ignore
