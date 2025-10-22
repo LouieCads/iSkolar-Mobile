@@ -1,9 +1,9 @@
-import { useState, useEffect } from 'react';
-import { View, Text, TextInput, Pressable, StyleSheet, Platform, ScrollView } from 'react-native';
+import { useState, useEffect, useRef } from 'react';
+import { View, Text, TextInput, Pressable, StyleSheet, Platform, Animated } from 'react-native';
 import { useRouter, useLocalSearchParams } from 'expo-router';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
-import RNPickerSelect from 'react-native-picker-select';
+import { Dropdown } from 'react-native-element-dropdown';
 import { authService } from '@/services/auth.service';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { useForm, Controller } from 'react-hook-form';
@@ -22,7 +22,7 @@ const studentProfileSchema = z.object({
 // Sponsor Profile Validation 
 const sponsorProfileSchema = z.object({
   organization_name: z.string().nonempty("Organization name is required"),
-  organization_type: z.string().nonempty("Organization name is required"),
+  organization_type: z.string().nonempty("Organization type is required"),
   official_email: z.string()
     .nonempty("Email is required")
     .email("Invalid email format"),
@@ -47,6 +47,15 @@ export default function ProfileSetupPage() {
     title: '',
     message: '',
   });
+
+  // Animation values for dropdowns
+  const genderDropdownRotation = useRef(new Animated.Value(0)).current;
+  const genderDropdownScale = useRef(new Animated.Value(1)).current;
+  const orgTypeDropdownRotation = useRef(new Animated.Value(0)).current;
+  const orgTypeDropdownScale = useRef(new Animated.Value(1)).current;
+
+  const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false);
+  const [isOrgTypeDropdownOpen, setIsOrgTypeDropdownOpen] = useState(false);
 
   useEffect(() => {
     const checkUserRole = async () => {
@@ -117,6 +126,43 @@ export default function ProfileSetupPage() {
     }
   };
 
+  const animateDropdown = (rotation: Animated.Value, scale: Animated.Value, isOpen: boolean) => {
+    Animated.parallel([
+      Animated.spring(rotation, {
+        toValue: isOpen ? 1 : 0,
+        useNativeDriver: true,
+        tension: 80,
+        friction: 8,
+      }),
+      Animated.spring(scale, {
+        toValue: isOpen ? 1.02 : 1,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 8,
+      })
+    ]).start();
+  };
+
+  const handleGenderDropdownFocus = () => {
+    setIsGenderDropdownOpen(true);
+    animateDropdown(genderDropdownRotation, genderDropdownScale, true);
+  };
+
+  const handleGenderDropdownBlur = () => {
+    setIsGenderDropdownOpen(false);
+    animateDropdown(genderDropdownRotation, genderDropdownScale, false);
+  };
+
+  const handleOrgTypeDropdownFocus = () => {
+    setIsOrgTypeDropdownOpen(true);
+    animateDropdown(orgTypeDropdownRotation, orgTypeDropdownScale, true);
+  };
+
+  const handleOrgTypeDropdownBlur = () => {
+    setIsOrgTypeDropdownOpen(false);
+    animateDropdown(orgTypeDropdownRotation, orgTypeDropdownScale, false);
+  };
+
   const handleComplete = async (data: StudentFormData | SponsorFormData) => {
     try {
       setLoading(true);
@@ -184,6 +230,16 @@ export default function ProfileSetupPage() {
     { label: 'Foundation', value: 'Foundation' },
   ];
 
+  const genderIconRotate = genderDropdownRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
+
+  const orgTypeIconRotate = orgTypeDropdownRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
+
   if (showLoadingScreen) {
     return (
       <LoadingScreen 
@@ -250,17 +306,40 @@ export default function ProfileSetupPage() {
                 control={studentForm.control}
                 name="gender"
                 render={({ field: { onChange, value } }) => (
-                  <RNPickerSelect
-                    onValueChange={onChange}
-                    items={genderItems}
-                    placeholder={{ label: 'Select gender', value: '', color: '#9CA3AF' }}
-                    style={pickerSelectStyles}
-                    value={value}
-                    useNativeAndroidPickerStyle={false}
-                    Icon={() => <MaterialIcons name="arrow-drop-down" size={24} color="#3A52A6" />}
-                  />
+                  <Animated.View style={{ transform: [{ scale: genderDropdownScale }] }}>
+                    <Dropdown
+                      style={[styles.dropdown, studentForm.formState.errors.gender && styles.inputError]}
+                      placeholderStyle={styles.placeholderStyle}
+                      selectedTextStyle={styles.selectedTextStyle}
+                      iconStyle={styles.iconStyle}
+                      containerStyle={styles.dropdownContainer}
+                      itemContainerStyle={styles.itemContainer}
+                      itemTextStyle={styles.itemText}
+                      activeColor="#E0ECFF"
+                      data={genderItems}
+                      maxHeight={300}
+                      labelField="label"
+                      valueField="value"
+                      placeholder="Select gender"
+                      value={value}
+                      onChange={item => {
+                        onChange(item.value);
+                        handleGenderDropdownBlur();
+                      }}
+                      onFocus={handleGenderDropdownFocus}
+                      onBlur={handleGenderDropdownBlur}
+                      renderRightIcon={() => (
+                        <Animated.View style={{ transform: [{ rotate: genderIconRotate }] }}>
+                          <MaterialIcons name="arrow-drop-down" size={20} color="#6B7280" />
+                        </Animated.View>
+                      )}
+                    />
+                  </Animated.View>
                 )}
               />
+              {studentForm.formState.errors.gender && (
+                <Text style={styles.errorText}>{studentForm.formState.errors.gender.message}</Text>
+              )}
             </View>
 
             {/* Date of Birth */}
@@ -278,6 +357,7 @@ export default function ProfileSetupPage() {
                         placeholderTextColor="#9CA3AF"
                         value={value.toLocaleDateString('en-US')}
                         editable={false}
+                        pointerEvents="none"
                       />
                     </Pressable>
                     {showDatePicker && (
@@ -349,17 +429,40 @@ export default function ProfileSetupPage() {
                 control={sponsorForm.control}
                 name="organization_type"
                 render={({ field: { onChange, value } }) => (
-                  <RNPickerSelect
-                    onValueChange={onChange}
-                    items={orgTypeItems}
-                    placeholder={{ label: 'Select organization type', value: '', color: '#9CA3AF' }}
-                    style={pickerSelectStyles}
-                    value={value}
-                    useNativeAndroidPickerStyle={false}
-                    Icon={() => <MaterialIcons name="arrow-drop-down" size={24} color="#3A52A6" />}
-                  />
+                  <Animated.View style={{ transform: [{ scale: orgTypeDropdownScale }] }}>
+                    <Dropdown
+                      style={[styles.dropdown, sponsorForm.formState.errors.organization_type && styles.inputError]}
+                      placeholderStyle={styles.placeholderStyle}
+                      selectedTextStyle={styles.selectedTextStyle}
+                      iconStyle={styles.iconStyle}
+                      containerStyle={styles.dropdownContainer}
+                      itemContainerStyle={styles.itemContainer}
+                      itemTextStyle={styles.itemText}
+                      activeColor="#E0ECFF"
+                      data={orgTypeItems}
+                      maxHeight={300}
+                      labelField="label"
+                      valueField="value"
+                      placeholder="Select organization type"
+                      value={value}
+                      onChange={item => {
+                        onChange(item.value);
+                        handleOrgTypeDropdownBlur();
+                      }}
+                      onFocus={handleOrgTypeDropdownFocus}
+                      onBlur={handleOrgTypeDropdownBlur}
+                      renderRightIcon={() => (
+                        <Animated.View style={{ transform: [{ rotate: orgTypeIconRotate }] }}>
+                          <MaterialIcons name="arrow-drop-down" size={20} color="#6B7280" />
+                        </Animated.View>
+                      )}
+                    />
+                  </Animated.View>
                 )}
               />
+              {sponsorForm.formState.errors.organization_type && (
+                <Text style={styles.errorText}>{sponsorForm.formState.errors.organization_type.message}</Text>
+              )}
             </View>
 
             {/* Official Email Address */}
@@ -491,6 +594,52 @@ const styles = StyleSheet.create({
     marginTop: 4,
     marginLeft: 2,
   },
+  dropdown: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#C4CBD5',
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+  },
+  placeholderStyle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  selectedTextStyle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#111827',
+  },
+  iconStyle: {
+    width: 20,
+    height: 20,
+  },
+  dropdownContainer: {
+    backgroundColor: '#F0F7FF',
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: '#C4CBD5',
+    shadowColor: '#3A52A6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    marginTop: 4,
+  },
+  itemContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  itemText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#111827',
+  },
+  selectedItem: {
+    backgroundColor: '#E0ECFF',
+  },
   button: {
     backgroundColor: '#3A52A6',
     borderRadius: 10,
@@ -510,41 +659,5 @@ const styles = StyleSheet.create({
     color: '#F0F7FF',
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
-  },
-});
-
-const pickerSelectStyles = StyleSheet.create({
-  inputIOS: {
-    backgroundColor: '#F0F7FF',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#C4CBD5',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    fontFamily: 'BreeSerif_400Regular',
-    fontSize: 12,
-    color: '#111827',
-    paddingRight: 30,
-  },
-  inputAndroid: {
-    backgroundColor: '#F0F7FF',
-    borderRadius: 10,
-    borderWidth: 1,
-    borderColor: '#C4CBD5',
-    paddingVertical: 12,
-    paddingHorizontal: 14,
-    fontFamily: 'BreeSerif_400Regular',
-    fontSize: 12,
-    color: '#111827',
-    paddingRight: 30,
-  },
-  iconContainer: {
-    top: 10,
-    right: 12,
-  },
-  placeholder: {
-    color: '#9CA3AF',
-    fontSize: 12,
-    fontFamily: 'BreeSerif_400Regular',
   },
 });
