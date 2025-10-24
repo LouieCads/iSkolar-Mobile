@@ -9,7 +9,7 @@ export default function Student() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="home" />
         <Stack.Screen name="discover" />
-        <Stack.Screen name="my-profile" />
+        <Stack.Screen name="my-student-profile" />
       </Stack>
       <StudentNav />
     </View>

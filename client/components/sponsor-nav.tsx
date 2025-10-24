@@ -1,16 +1,16 @@
-// components/StudentNav.tsx
+// components/SponsorNav.tsx
 import { View, Pressable, StyleSheet } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { MaterialCommunityIcons  } from '@expo/vector-icons';
 
-export default function Sponsor() {
+export default function SponsorNav() {
   const router = useRouter();
   const pathname = usePathname();
 
   const navItems = [
     { name: 'my-scholarships', icon: 'home-outline' as const, route: '/(sponsor)/my-scholarships' as const },
     { name: 'discover', icon: 'compass-outline' as const, route: '/(sponsor)/discover' as const },
-    { name: 'profile', icon: 'account' as const, route: '/(sponsor)/my-profile' as const },
+    { name: 'profile', icon: 'account' as const, route: '/(sponsor)/my-sponsor-profile' as const },
   ];
 
   const isActive = (route: string) => pathname === route;
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     backgroundColor: '#1E2847',
-    paddingVertical: 5,
+    paddingVertical: 3,
     paddingHorizontal: 20,
   },
   navItem: {

@@ -10,7 +10,7 @@ export default function StudentNav() {
   const navItems = [
     { name: 'home', icon: 'home-outline' as const, route: '/(student)/home' as const },
     { name: 'discover', icon: 'compass-outline' as const, route: '/(student)/discover' as const },
-    { name: 'profile', icon: 'account' as const, route: '/(student)/my-profile' as const },
+    { name: 'profile', icon: 'account' as const, route: '/(student)/my-student-profile' as const },
   ];
 
   const isActive = (route: string) => pathname === route;
@@ -49,7 +49,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     alignItems: 'center',
     backgroundColor: '#1E2847',
-    paddingVertical: 5,
+    paddingVertical: 3,
     paddingHorizontal: 20,
   },
   navItem: {

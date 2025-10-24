@@ -1,6 +1,6 @@
-// (student)/_layout.tsx
+// (sponsor)/_layout.tsx
 import { Stack } from 'expo-router';
-import SponsorNav from '@/components/student-nav';
+import SponsorNav from '@/components/sponsor-nav';
 import { View, StyleSheet } from 'react-native';
 
 export default function Sponsor() {
@@ -9,7 +9,7 @@ export default function Sponsor() {
       <Stack screenOptions={{ headerShown: false }}>
         <Stack.Screen name="my-scholarships" />
         <Stack.Screen name="discover" />
-        <Stack.Screen name="my-profile" />
+        <Stack.Screen name="my-sponsor-profile" />
       </Stack>
       <SponsorNav />
     </View>

@@ -2,7 +2,7 @@ import { View, Text, Image, Pressable, StyleSheet, Animated } from 'react-native
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
-import { authService } from '@/services/auth.service'; // ✅ import your authService
+import { authService } from '@/services/auth.service'; 
 
 export default function HomePage() {
   const router = useRouter();
