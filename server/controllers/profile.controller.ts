@@ -283,4 +283,95 @@ export const deleteProfilePicture = async (req: AuthenticatedRequest, res: Respo
   }
 };
 
+// Update profile
+export const updateProfile = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ 
+        success: false,
+        message: "Authentication required." 
+      });
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user) {
+      return res.status(404).json({ 
+        success: false,
+        message: "User not found." 
+      });
+    }
+
+    if (user.role === 'student') {
+      const student = await Student.findOne({ where: { user_id: userId } });
+      if (!student) {
+        return res.status(404).json({ 
+          success: false,
+          message: "Student profile not found." 
+        });
+      }
+
+      const { full_name, gender, date_of_birth, contact_number } = req.body;
+
+      if (full_name) student.full_name = full_name;
+      if (gender) student.gender = gender;
+      if (date_of_birth) student.date_of_birth = date_of_birth;
+      if (contact_number) student.contact_number = contact_number;
+
+      await student.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Student profile updated successfully",
+        student: {
+          full_name: student.full_name,
+          gender: student.gender,
+          date_of_birth: student.date_of_birth,
+          contact_number: student.contact_number,
+        }
+      });
+    } else if (user.role === 'sponsor') {
+      const sponsor = await Sponsor.findOne({ where: { user_id: userId } });
+      if (!sponsor) {
+        return res.status(404).json({ 
+          success: false,
+          message: "Sponsor profile not found." 
+        });
+      }
+
+      const { organization_name, organization_type, official_email, contact_number } = req.body;
+
+      if (organization_name) sponsor.organization_name = organization_name;
+      if (organization_type) sponsor.organization_type = organization_type;
+      if (official_email) sponsor.official_email = official_email;
+      if (contact_number) sponsor.contact_number = contact_number;
+
+      await sponsor.save();
+
+      return res.status(200).json({
+        success: true,
+        message: "Sponsor profile updated successfully",
+        sponsor: {
+          organization_name: sponsor.organization_name,
+          organization_type: sponsor.organization_type,
+          official_email: sponsor.official_email,
+          contact_number: sponsor.contact_number,
+        }
+      });
+    }
+
+    return res.status(400).json({ 
+      success: false,
+      message: "Invalid user role." 
+    });
+  } catch (error) {
+    console.error("Error updating profile:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error updating profile. Please try again later."
+    });
+  }
+};
+
 export { upload };

@@ -1,12 +1,13 @@
-// app/(student)/my-profile.tsx
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image, Alert, TextInput, Platform, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { Ionicons, Foundation } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
+import { Ionicons, Foundation, MaterialIcons } from '@expo/vector-icons';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { authService, ProfileData } from '@/services/auth.service';
 import * as ImagePicker from 'expo-image-picker';
-import Toast from '@/components/toast'; 
+import DateTimePicker, { DateTimePickerEvent } from '@react-native-community/datetimepicker';
+import { Dropdown } from 'react-native-element-dropdown';
+import Toast from '@/components/toast';
 
 export default function MyStudentProfile() {
   const router = useRouter();
@@ -14,6 +15,15 @@ export default function MyStudentProfile() {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [date, setDate] = useState(new Date());
+  const [editedData, setEditedData] = useState({
+    full_name: '',
+    gender: '',
+    date_of_birth: '',
+    contact_number: '',
+  });
   const [toast, setToast] = useState({
     visible: false,
     type: 'success' as 'success' | 'error',
@@ -21,9 +31,65 @@ export default function MyStudentProfile() {
     message: '',
   });
 
+  const genderDropdownRotation = useRef(new Animated.Value(0)).current;
+  const genderDropdownScale = useRef(new Animated.Value(1)).current;
+  const [isGenderDropdownOpen, setIsGenderDropdownOpen] = useState(false);
+
+  const genderIconRotate = genderDropdownRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
+
+  const animateDropdown = (rotation: Animated.Value, scale: Animated.Value, isOpen: boolean) => {
+    Animated.parallel([
+      Animated.spring(rotation, {
+        toValue: isOpen ? 1 : 0,
+        useNativeDriver: true,
+        tension: 80,
+        friction: 8,
+      }),
+      Animated.spring(scale, {
+        toValue: isOpen ? 1.02 : 1,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 8,
+      })
+    ]).start();
+  };
+
+  const handleGenderDropdownFocus = () => {
+    setIsGenderDropdownOpen(true);
+    animateDropdown(genderDropdownRotation, genderDropdownScale, true);
+  };
+
+  const handleGenderDropdownBlur = () => {
+    setIsGenderDropdownOpen(false);
+    animateDropdown(genderDropdownRotation, genderDropdownScale, false);
+  };
+
+  const genderItems = [
+    { label: 'Male', value: 'male' },
+    { label: 'Female', value: 'female' },
+  ];
+
+  const onChangeDate = (event: DateTimePickerEvent, selectedDate?: Date) => {
+    setShowDatePicker(Platform.OS === 'ios');
+    if (selectedDate) {
+      setDate(selectedDate);
+      const formattedDate = selectedDate.toISOString().split('T')[0];
+      setEditedData({ ...editedData, date_of_birth: formattedDate });
+    }
+  };
+
   useEffect(() => {
     fetchProfile();
   }, []);
+
+  useEffect(() => {
+    if (isEditing && profileData?.date_of_birth) {
+      setDate(new Date(profileData.date_of_birth));
+    }
+  }, [isEditing, profileData]);
 
   const fetchProfile = async () => {
     try {
@@ -34,6 +100,12 @@ export default function MyStudentProfile() {
       if (result.success && result.profile) {
         console.log('Profile data:', result.profile);
         setProfileData(result.profile);
+        setEditedData({
+          full_name: result.profile.full_name || '',
+          gender: result.profile.gender || '',
+          date_of_birth: result.profile.date_of_birth || '',
+          contact_number: result.profile.contact_number || '',
+        });
       } else {
         showToast('error', 'Error', result.message);
       }
@@ -139,6 +211,43 @@ export default function MyStudentProfile() {
     return gender.charAt(0).toUpperCase() + gender.slice(1);
   };
 
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+
+    if (profileData) {
+      setEditedData({
+        full_name: profileData.full_name || '',
+        gender: profileData.gender || '',
+        date_of_birth: profileData.date_of_birth || '',
+        contact_number: profileData.contact_number || '',
+      });
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      const result = await authService.updateProfile(editedData);
+      
+      if (result.success) {
+        showToast('success', 'Success', 'Profile updated successfully');
+        await fetchProfile();
+        setIsEditing(false);
+      } else {
+        showToast('error', 'Error', result.message);
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      showToast('error', 'Error', 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleLogout = async () => {
     try {
       await authService.removeToken();
@@ -235,7 +344,18 @@ export default function MyStudentProfile() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>PERSONAL INFORMATION</Text>
+          <View style={styles.cardTitleContainer}>
+            <Text style={styles.cardTitle}>PERSONAL INFORMATION</Text>
+            {/* Edit Button */}
+            {!isEditing && (
+              <TouchableOpacity 
+                onPress={handleEdit}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="create-outline" size={18} color="#3A52A6" />
+              </TouchableOpacity>
+            )}
+          </View>
 
           {/* Email */}
           <View style={styles.infoRow}>
@@ -255,18 +375,71 @@ export default function MyStudentProfile() {
             </View>
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoLabel}>Full Name</Text>
-              <Text style={styles.infoValue}>{profileData.full_name || 'Not provided'}</Text>
+              {isEditing ? (
+                <TextInput
+                  style={styles.editInput}
+                  value={editedData.full_name}
+                  onChangeText={(text) => setEditedData({ ...editedData, full_name: text })}
+                  placeholder="Enter full name"
+                />
+              ) : (
+                <Text style={styles.infoValue}>{profileData.full_name || 'Not provided'}</Text>
+              )}
             </View>
           </View>
 
           {/* Gender */}
           <View style={styles.infoRow}>
             <View style={styles.iconCircle}>
-              <Foundation name="male-symbol" size={24} color="#3A52A6" />
+              {isEditing ? (
+                <Foundation 
+                  name={editedData.gender?.toLowerCase() === 'female' ? 'female-symbol' : 'male-symbol'} 
+                  size={24} 
+                  color="#3A52A6" 
+                />
+              ) : (
+                <Foundation 
+                  name={profileData.gender?.toLowerCase() === 'female' ? 'female-symbol' : 'male-symbol'} 
+                  size={24} 
+                  color="#3A52A6" 
+                />
+              )}
             </View>
-            <View style={styles.infoTextContainer}>
+            <View style={[styles.infoTextContainer, isEditing && styles.editInputContainer]}>
               <Text style={styles.infoLabel}>Gender</Text>
-              <Text style={styles.infoValue}>{formatGender(profileData.gender || '') || ''}</Text>
+              {isEditing ? (
+                <Animated.View style={{ transform: [{ scale: genderDropdownScale }] }}>
+                  <Dropdown
+                    style={styles.dropdown}
+                    placeholderStyle={styles.placeholderStyle}
+                    selectedTextStyle={styles.selectedTextStyle}
+                    iconStyle={styles.iconStyle}
+                    containerStyle={styles.dropdownContainer}
+                    itemContainerStyle={styles.itemContainer}
+                    itemTextStyle={styles.itemText}
+                    activeColor="#E0ECFF"
+                    data={genderItems}
+                    maxHeight={300}
+                    labelField="label"
+                    valueField="value"
+                    placeholder="Select gender"
+                    value={editedData.gender}
+                    onChange={item => {
+                      setEditedData({ ...editedData, gender: item.value });
+                      handleGenderDropdownBlur();
+                    }}
+                    onFocus={handleGenderDropdownFocus}
+                    onBlur={handleGenderDropdownBlur}
+                    renderRightIcon={() => (
+                      <Animated.View style={{ transform: [{ rotate: genderIconRotate }] }}>
+                        <MaterialIcons name="arrow-drop-down" size={20} color="#6B7280" />
+                      </Animated.View>
+                    )}
+                  />
+                </Animated.View>
+              ) : (
+                <Text style={styles.infoValue}>{formatGender(profileData.gender || '') || ''}</Text>
+              )}
             </View>
           </View>
 
@@ -277,7 +450,29 @@ export default function MyStudentProfile() {
             </View>
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoLabel}>Date of Birth</Text>
-              <Text style={styles.infoValue}>{formatDate(profileData.date_of_birth || '') || ''}</Text>
+              {isEditing ? (
+                <>
+                  <TouchableOpacity onPress={() => setShowDatePicker(true)}>
+                    <View style={styles.dateInputContainer}>
+                      <Text style={styles.dateInputText}>
+                        {editedData.date_of_birth || 'Select date'}
+                      </Text>
+                      <MaterialIcons name="calendar-today" size={18} color="#6B7280" />
+                    </View>
+                  </TouchableOpacity>
+                  {showDatePicker && (
+                    <DateTimePicker
+                      value={date}
+                      mode="date"
+                      display={Platform.OS === 'ios' ? 'spinner' : 'default'}
+                      onChange={onChangeDate}
+                      maximumDate={new Date()}
+                    />
+                  )}
+                </>
+              ) : (
+                <Text style={styles.infoValue}>{formatDate(profileData.date_of_birth || '') || ''}</Text>
+              )}
             </View>
           </View>
 
@@ -288,20 +483,51 @@ export default function MyStudentProfile() {
             </View>
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoLabel}>Contact Number</Text>
-              <Text style={styles.infoValue}>{profileData.contact_number || 'Not provided'}</Text>
+              {isEditing ? (
+                <TextInput
+                  style={styles.editInput}
+                  value={editedData.contact_number}
+                  onChangeText={(text) => setEditedData({ ...editedData, contact_number: text })}
+                  placeholder="Enter contact number"
+                  keyboardType="phone-pad"
+                />
+              ) : (
+                <Text style={styles.infoValue}>{profileData.contact_number || 'Not provided'}</Text>
+              )}
             </View>
           </View>
         </View>
 
-        {/* Logout Button */}
-        <TouchableOpacity 
-          style={styles.logoutButton}
-          onPress={() => setShowLogoutModal(true)}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="log-out-outline" size={18} color="#F0F7FF" />
-          <Text style={styles.logoutButtonText}>Log Out</Text>
-        </TouchableOpacity>
+        {/* Action Buttons */}
+        {isEditing ? (
+          <View style={styles.editActionButtons}>
+            <TouchableOpacity 
+              style={styles.cancelEditButton}
+              onPress={handleCancelEdit}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="close-outline" size={18} color="#3A52A6" />
+              <Text style={styles.cancelEditButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.saveButton}
+              onPress={handleSave}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="checkmark-outline" size={18} color="#F0F7FF" />
+              <Text style={styles.saveButtonText}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity 
+            style={styles.logoutButton}
+            onPress={() => setShowLogoutModal(true)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="log-out-outline" size={18} color="#F0F7FF" />
+            <Text style={styles.logoutButtonText}>Log Out</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* Logout Confirmation Modal */}
@@ -424,6 +650,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  cardTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20
+  },
   cardTitle: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
@@ -431,7 +663,6 @@ const styles = StyleSheet.create({
     opacity: 0.75,
     fontWeight: '600',
     letterSpacing: 0.5,
-    marginBottom: 20,
   },
   infoRow: {
     flexDirection: 'row',
@@ -465,6 +696,123 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#111827',
     fontWeight: '500',
+  },
+  editInput: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#111827',
+    fontWeight: '500',
+    borderBottomWidth: 1,
+    borderBottomColor: '#3A52A6',
+    paddingVertical: 4,
+  },
+  editInputContainer: {
+    flex: 1,
+  },
+  dropdown: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#3A52A6',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    marginTop: 4,
+  },
+  placeholderStyle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  selectedTextStyle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#111827',
+  },
+  iconStyle: {
+    width: 20,
+    height: 20,
+  },
+  dropdownContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#C4CBD5',
+    shadowColor: '#3A52A6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    marginTop: 4,
+  },
+  itemContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  itemText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#111827',
+  },
+  dateInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    backgroundColor: '#FFFFFF',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#3A52A6',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    marginTop: 4,
+  },
+  dateInputText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#111827',
+  },
+  editActionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
+  cancelEditButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EDF2F7',
+    borderRadius: 12,
+    paddingVertical: 15,
+    borderWidth: 1,
+    borderColor: '#3A52A6',
+  },
+  cancelEditButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#3A52A6',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  saveButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3A52A6',
+    borderRadius: 12,
+    paddingVertical: 15,
+    shadowColor: '#3A52A6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  saveButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginLeft: 8,
   },
   logoutButton: {
     flexDirection: 'row',

@@ -1,12 +1,12 @@
-// app/(sponsor)/my-profile.tsx
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, TouchableOpacity, Modal, Image, Alert, TextInput, Animated } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
 import { authService, ProfileData } from '@/services/auth.service';
 import * as ImagePicker from 'expo-image-picker';
-import Toast from '@/components/toast'; 
+import { Dropdown } from 'react-native-element-dropdown';
+import Toast from '@/components/toast';
 
 export default function MySponsorProfile() {
   const router = useRouter();
@@ -14,12 +14,73 @@ export default function MySponsorProfile() {
   const [profileData, setProfileData] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [uploadingImage, setUploadingImage] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
+  const [editedData, setEditedData] = useState({
+    organization_name: '',
+    organization_type: '',
+    official_email: '',
+    contact_number: '',
+  });
   const [toast, setToast] = useState({
     visible: false,
     type: 'success' as 'success' | 'error',
     title: '',
     message: '',
   });
+
+  const orgTypeDropdownRotation = useRef(new Animated.Value(0)).current;
+  const orgTypeDropdownScale = useRef(new Animated.Value(1)).current;
+  const [isOrgTypeDropdownOpen, setIsOrgTypeDropdownOpen] = useState(false);
+
+  const orgTypeIconRotate = orgTypeDropdownRotation.interpolate({
+    inputRange: [0, 1],
+    outputRange: ['0deg', '180deg'],
+  });
+
+  const animateDropdown = (rotation: Animated.Value, scale: Animated.Value, isOpen: boolean) => {
+    Animated.parallel([
+      Animated.spring(rotation, {
+        toValue: isOpen ? 1 : 0,
+        useNativeDriver: true,
+        tension: 80,
+        friction: 8,
+      }),
+      Animated.spring(scale, {
+        toValue: isOpen ? 1.02 : 1,
+        useNativeDriver: true,
+        tension: 100,
+        friction: 8,
+      })
+    ]).start();
+  };
+
+  const handleOrgTypeDropdownFocus = () => {
+    setIsOrgTypeDropdownOpen(true);
+    animateDropdown(orgTypeDropdownRotation, orgTypeDropdownScale, true);
+  };
+
+  const handleOrgTypeDropdownBlur = () => {
+    setIsOrgTypeDropdownOpen(false);
+    animateDropdown(orgTypeDropdownRotation, orgTypeDropdownScale, false);
+  };
+
+  const orgTypeItems = [
+    { label: 'Non-profit', value: 'non_profit' },
+    { label: 'Private Company', value: 'private_company' },
+    { label: 'Government Agency', value: 'government_agency' },
+    { label: 'Educational Institution', value: 'educational_institution' },
+    { label: 'Foundation', value: 'foundation' },
+  ];
+
+  const getOrgTypeIcon = () => {
+    const type = isEditing ? editedData.organization_type : profileData?.organization_type;
+    if (type === 'non_profit') return <MaterialCommunityIcons name="heart-multiple" size={24} color="#3A52A6" />;
+    if (type === 'private_company') return <MaterialCommunityIcons name="office-building" size={24} color="#3A52A6" />;
+    if (type === 'government_agency') return <MaterialCommunityIcons name="domain" size={24} color="#3A52A6" />;
+    if (type === 'educational_institution') return <MaterialCommunityIcons name="school" size={24} color="#3A52A6" />;
+    if (type === 'foundation') return <MaterialCommunityIcons name="pillar" size={24} color="#3A52A6" />;
+    return <MaterialIcons name="private-connectivity" size={24} color="#3A52A6" />;
+  };
 
   useEffect(() => {
     fetchProfile();
@@ -34,6 +95,12 @@ export default function MySponsorProfile() {
       if (result.success && result.profile) {
         console.log('Profile data:', result.profile);
         setProfileData(result.profile);
+        setEditedData({
+          organization_name: result.profile.organization_name || '',
+          organization_type: result.profile.organization_type || '',
+          official_email: result.profile.official_email || '',
+          contact_number: result.profile.contact_number || '',
+        });
       } else {
         showToast('error', 'Error', result.message);
       }
@@ -113,7 +180,7 @@ export default function MySponsorProfile() {
       
       if (result.success) {
         showToast('success', 'Success', 'Profile picture updated successfully');
-        // Update local profile data
+
         if (profileData) {
           setProfileData({ ...profileData, profile_url: result.profile_url });
         }
@@ -132,6 +199,42 @@ export default function MySponsorProfile() {
   const formatOrgType = (orgType: string) => {
     if (!orgType) return '';
     return orgType.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+  };
+
+  const handleEdit = () => {
+    setIsEditing(true);
+  };
+
+  const handleCancelEdit = () => {
+    setIsEditing(false);
+    if (profileData) {
+      setEditedData({
+        organization_name: profileData.organization_name || '',
+        organization_type: profileData.organization_type || '',
+        official_email: profileData.official_email || '',
+        contact_number: profileData.contact_number || '',
+      });
+    }
+  };
+
+  const handleSave = async () => {
+    try {
+      setLoading(true);
+      const result = await authService.updateProfile(editedData);
+      
+      if (result.success) {
+        showToast('success', 'Success', 'Profile updated successfully');
+        await fetchProfile();
+        setIsEditing(false);
+      } else {
+        showToast('error', 'Error', result.message);
+      }
+    } catch (error) {
+      console.error('Error updating profile:', error);
+      showToast('error', 'Error', 'Failed to update profile');
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleLogout = async () => {
@@ -230,7 +333,18 @@ export default function MySponsorProfile() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.card}>
-          <Text style={styles.cardTitle}>ORGANIZATION INFORMATION</Text>
+          <View style={styles.cardTitleContainer}>
+            <Text style={styles.cardTitle}>ORGANIZATION INFORMATION</Text>
+            {/* Edit Button */}
+            {!isEditing && (
+              <TouchableOpacity 
+                onPress={handleEdit}
+                activeOpacity={0.7}
+              >
+                <Ionicons name="create-outline" size={18} color="#3A52A6" />
+              </TouchableOpacity>
+            )}
+          </View>
 
           {/* Official Email */}
           <View style={styles.infoRow}>
@@ -250,18 +364,59 @@ export default function MySponsorProfile() {
             </View>
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoLabel}>Organization Name</Text>
-              <Text style={styles.infoValue}>{profileData.organization_name || ''}</Text>
+              {isEditing ? (
+                <TextInput
+                  style={styles.editInput}
+                  value={editedData.organization_name}
+                  onChangeText={(text) => setEditedData({ ...editedData, organization_name: text })}
+                  placeholder="Enter organization name"
+                />
+              ) : (
+                <Text style={styles.infoValue}>{profileData.organization_name || ''}</Text>
+              )}
             </View>
           </View>
 
           {/* Organization Type */}
           <View style={styles.infoRow}>
             <View style={styles.iconCircle}>
-              <MaterialIcons name="private-connectivity" size={24} color="#3A52A6" />
+              {getOrgTypeIcon()}
             </View>
-            <View style={styles.infoTextContainer}>
+            <View style={[styles.infoTextContainer, isEditing && styles.editInputContainer]}>
               <Text style={styles.infoLabel}>Organization Type</Text>
-              <Text style={styles.infoValue}>{formatOrgType(profileData.organization_type || '') || ''}</Text>
+              {isEditing ? (
+                <Animated.View style={{ transform: [{ scale: orgTypeDropdownScale }] }}>
+                  <Dropdown
+                    style={styles.dropdown}
+                    placeholderStyle={styles.placeholderStyle}
+                    selectedTextStyle={styles.selectedTextStyle}
+                    iconStyle={styles.iconStyle}
+                    containerStyle={styles.dropdownContainer}
+                    itemContainerStyle={styles.itemContainer}
+                    itemTextStyle={styles.itemText}
+                    activeColor="#E0ECFF"
+                    data={orgTypeItems}
+                    maxHeight={300}
+                    labelField="label"
+                    valueField="value"
+                    placeholder="Select organization type"
+                    value={editedData.organization_type}
+                    onChange={item => {
+                      setEditedData({ ...editedData, organization_type: item.value });
+                      handleOrgTypeDropdownBlur();
+                    }}
+                    onFocus={handleOrgTypeDropdownFocus}
+                    onBlur={handleOrgTypeDropdownBlur}
+                    renderRightIcon={() => (
+                      <Animated.View style={{ transform: [{ rotate: orgTypeIconRotate }] }}>
+                        <MaterialIcons name="arrow-drop-down" size={20} color="#6B7280" />
+                      </Animated.View>
+                    )}
+                  />
+                </Animated.View>
+              ) : (
+                <Text style={styles.infoValue}>{formatOrgType(profileData.organization_type || '') || ''}</Text>
+              )}
             </View>
           </View>
 
@@ -272,20 +427,51 @@ export default function MySponsorProfile() {
             </View>
             <View style={styles.infoTextContainer}>
               <Text style={styles.infoLabel}>Contact Number</Text>
-              <Text style={styles.infoValue}>{profileData.contact_number || ''}</Text>
+              {isEditing ? (
+                <TextInput
+                  style={styles.editInput}
+                  value={editedData.contact_number}
+                  onChangeText={(text) => setEditedData({ ...editedData, contact_number: text })}
+                  placeholder="Enter contact number"
+                  keyboardType="phone-pad"
+                />
+              ) : (
+                <Text style={styles.infoValue}>{profileData.contact_number || ''}</Text>
+              )}
             </View>
           </View>
         </View>
 
-        {/* Logout Button */}
-        <TouchableOpacity 
-          style={styles.logoutButton}
-          onPress={() => setShowLogoutModal(true)}
-          activeOpacity={0.8}
-        >
-          <Ionicons name="log-out-outline" size={18} color="#F0F7FF" />
-          <Text style={styles.logoutButtonText}>Log Out</Text>
-        </TouchableOpacity>
+        {/* Action Buttons */}
+        {isEditing ? (
+          <View style={styles.editActionButtons}>
+            <TouchableOpacity 
+              style={styles.cancelEditButton}
+              onPress={handleCancelEdit}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="close-outline" size={18} color="#3A52A6" />
+              <Text style={styles.cancelEditButtonText}>Cancel</Text>
+            </TouchableOpacity>
+            <TouchableOpacity 
+              style={styles.saveButton}
+              onPress={handleSave}
+              activeOpacity={0.8}
+            >
+              <Ionicons name="checkmark-outline" size={18} color="#F0F7FF" />
+              <Text style={styles.saveButtonText}>Save</Text>
+            </TouchableOpacity>
+          </View>
+        ) : (
+          <TouchableOpacity 
+            style={styles.logoutButton}
+            onPress={() => setShowLogoutModal(true)}
+            activeOpacity={0.8}
+          >
+            <Ionicons name="log-out-outline" size={18} color="#F0F7FF" />
+            <Text style={styles.logoutButtonText}>Log Out</Text>
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
       {/* Logout Confirmation Modal */}
@@ -408,6 +594,12 @@ const styles = StyleSheet.create({
     shadowRadius: 8,
     elevation: 2,
   },
+  cardTitleContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20
+  },
   cardTitle: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
@@ -415,7 +607,6 @@ const styles = StyleSheet.create({
     opacity: 0.75,
     fontWeight: '600',
     letterSpacing: 0.5,
-    marginBottom: 20,
   },
   infoRow: {
     flexDirection: 'row',
@@ -449,6 +640,106 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#111827',
     fontWeight: '500',
+  },
+  editInput: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#111827',
+    fontWeight: '500',
+    borderBottomWidth: 1,
+    borderBottomColor: '#3A52A6',
+    paddingVertical: 4,
+  },
+  editInputContainer: {
+    flex: 1,
+  },
+  dropdown: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#3A52A6',
+    paddingVertical: 6,
+    paddingHorizontal: 8,
+    marginTop: 4,
+  },
+  placeholderStyle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#9CA3AF',
+  },
+  selectedTextStyle: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#111827',
+  },
+  iconStyle: {
+    width: 20,
+    height: 20,
+  },
+  dropdownContainer: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: '#C4CBD5',
+    shadowColor: '#3A52A6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.15,
+    shadowRadius: 8,
+    elevation: 5,
+    marginTop: 4,
+  },
+  itemContainer: {
+    borderBottomWidth: 1,
+    borderBottomColor: '#E5E7EB',
+  },
+  itemText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 12,
+    color: '#111827',
+  },
+  editActionButtons: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 24,
+  },
+  cancelEditButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#EDF2F7',
+    borderRadius: 12,
+    paddingVertical: 15,
+    borderWidth: 1,
+    borderColor: '#3A52A6',
+  },
+  cancelEditButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#3A52A6',
+    fontWeight: '600',
+    marginLeft: 8,
+  },
+  saveButton: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#3A52A6',
+    borderRadius: 12,
+    paddingVertical: 15,
+    shadowColor: '#3A52A6',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.2,
+    shadowRadius: 8,
+    elevation: 3,
+  },
+  saveButtonText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#FFFFFF',
+    fontWeight: '600',
+    marginLeft: 8,
   },
   logoutButton: {
     flexDirection: 'row',

@@ -245,6 +245,19 @@ class AuthService {
       message: response.message
     };
   }
+
+  async updateProfile(profileData: Partial<StudentProfileData | SponsorProfileData>): Promise<{ success: boolean; profile?: any; message: string }> {
+    const response = await this.authenticatedRequest('/profile/profile', {
+      method: 'PUT',
+      body: JSON.stringify(profileData)
+    });
+
+    return {
+      success: response.success,
+      profile: response.data?.student || response.data?.sponsor,
+      message: response.message
+    };
+  }
 }
 
 export const authService = new AuthService();

@@ -218,16 +218,16 @@ export default function ProfileSetupPage() {
   };
 
   const genderItems = [
-    { label: 'Male', value: 'Male' },
-    { label: 'Female', value: 'Female' },
+    { label: 'Male', value: 'male' },
+    { label: 'Female', value: 'female' },
   ];
 
   const orgTypeItems = [
-    { label: 'Non-profit', value: 'Non-profit' },
-    { label: 'Private Company', value: 'Private Company' },
-    { label: 'Government Agency', value: 'Government Agency' },
-    { label: 'Educational Institution', value: 'Educational Institution' },
-    { label: 'Foundation', value: 'Foundation' },
+    { label: 'Non-profit', value: 'non_profit' },
+    { label: 'Private Company', value: 'private-Company' },
+    { label: 'Government Agency', value: 'government_agency' },
+    { label: 'Educational Institution', value: 'educational_institution' },
+    { label: 'Foundation', value: 'foundation' },
   ];
 
   const genderIconRotate = genderDropdownRotation.interpolate({
