@@ -7,6 +7,7 @@ interface UserAttributes {
   password: string;
   role?: "admin" | "student" | "sponsor";
   has_selected_role?: boolean;
+  profile_url?: string;
   created_at?: Date;
   updated_at?: Date;
 }
@@ -19,6 +20,7 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public password!: string;
   public role?: "admin" | "student" | "sponsor";
   public has_selected_role?: boolean;
+  public profile_url?: string;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
 }
@@ -48,6 +50,10 @@ User.init(
       type: DataTypes.BOOLEAN,
       defaultValue: false,
       allowNull: false,
+    },
+    profile_url: {
+      type: DataTypes.STRING(1000),
+      allowNull: true,
     },
     created_at: {
       type: DataTypes.DATE,

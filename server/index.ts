@@ -4,6 +4,7 @@ import cors from "cors";
 import sequelize from "./config/database";
 import authRoutes from "./routes/auth.routes";
 import onboardingRoutes from "./routes/onboarding.routes";
+import profileRoutes from "./routes/profile.routes";
 
 // Models
 import "./models/Users";
@@ -24,6 +25,7 @@ app.use(cors({
 // Routes
 app.use("/auth", authRoutes);
 app.use("/onboarding", onboardingRoutes);
+app.use("/profile", profileRoutes);
 
 sequelize
   .authenticate()
