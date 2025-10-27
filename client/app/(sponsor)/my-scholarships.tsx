@@ -2,7 +2,7 @@ import { View, Text, Image, Pressable, StyleSheet, Animated } from 'react-native
 import { useRouter } from 'expo-router';
 import { useEffect, useRef } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
-import { authService } from '@/services/auth.service'; // ✅ import your authService
+import { authService } from '@/services/auth.service'; 
 
 export default function MyScholarshipsPage() {
   const router = useRouter();
@@ -55,6 +55,12 @@ export default function MyScholarshipsPage() {
       <Animated.View style={{ opacity: textOpacity }}>
         <Text style={styles.title}>Welcome Sponsor</Text>
       </Animated.View>
+
+      <View>
+        <Pressable onPress={() => router.replace('./create-scholarship')}>
+          <Text style={styles.create}>Create</Text>
+        </Pressable>
+      </View>
     </View>
   );
 }
@@ -90,9 +96,17 @@ const styles = StyleSheet.create({
   },
   title: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 30,
+    fontSize: 32,
     textAlign: 'center',
     color: '#3A52A6',
     lineHeight: 28,
   },
+  create: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 32,
+    textAlign: 'center',
+    color: '#EFA508',
+    lineHeight: 28,
+    marginTop: 24,
+  }
 });
