@@ -3,7 +3,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Ionicons, MaterialIcons, MaterialCommunityIcons } from '@expo/vector-icons';
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'expo-router';
-import { authService, ProfileData } from '@/services/auth.service';
+import { authService } from '@/services/auth.service';
+import { profileService, ProfileData } from '@/services/profile.service';
 import * as ImagePicker from 'expo-image-picker';
 import { Dropdown } from 'react-native-element-dropdown';
 import Toast from '@/components/toast';
@@ -89,7 +90,7 @@ export default function MySponsorProfile() {
   const fetchProfile = async () => {
     try {
       setLoading(true);
-      const result = await authService.getProfile();
+      const result = await profileService.getProfile();
       console.log('Profile fetch result:', result);
       
       if (result.success && result.profile) {
@@ -175,7 +176,7 @@ export default function MySponsorProfile() {
       setUploadingImage(true);
       console.log('Starting profile picture upload for URI:', imageUri);
       
-      const result = await authService.uploadProfilePicture(imageUri);
+      const result = await profileService.uploadProfilePicture(imageUri);
       console.log('Upload result:', result);
       
       if (result.success) {
@@ -220,7 +221,7 @@ export default function MySponsorProfile() {
   const handleSave = async () => {
     try {
       setLoading(true);
-      const result = await authService.updateProfile(editedData);
+      const result = await profileService.updateProfile(editedData);
       
       if (result.success) {
         showToast('success', 'Success', 'Profile updated successfully');

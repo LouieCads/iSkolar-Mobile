@@ -5,7 +5,7 @@ import DateTimePicker from '@react-native-community/datetimepicker';
 import { Dropdown } from 'react-native-element-dropdown';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
-import { authService } from '@/services/auth.service';
+import { scholarshipService } from '@/services/scholarship.service';
 import Toast from '@/components/toast';
 
 export default function CreateScholarshipPage() {
@@ -240,16 +240,31 @@ export default function CreateScholarshipPage() {
         required_documents: documents,
       };
 
-      const result = await authService.createScholarship(scholarshipData);
+      const result = await scholarshipService.createScholarship(scholarshipData);
 
       if (result.success && result.scholarship) {
         const scholarshipId = result.scholarship.scholarship_id;
 
         if (imageUri) {
-          await authService.uploadScholarshipImage(scholarshipId, imageUri);
+          await scholarshipService.uploadScholarshipImage(scholarshipId, imageUri);
         }
 
         showToast('success', 'Success', 'Scholarship created successfully!');
+
+        // Reset
+        setType('');
+        setPurpose('');
+        setTitle('');
+        setDescription('');
+        setTotalAmount('');
+        setTotalSlot('');
+        setDeadline('');
+        setCriteria([]);
+        setDocuments([]);
+        setCriteriaInput('');
+        setDocumentsInput('');
+        setImageUri(null);
+        setDate(new Date());
       } else {
         showToast('error', 'Error', result.message || 'Failed to create scholarship');
       }
