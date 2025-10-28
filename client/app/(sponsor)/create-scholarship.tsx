@@ -1,8 +1,12 @@
-import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, Platform, Animated, Modal } from 'react-native';
-import { useState, useRef } from 'react';
+import { View, Text, TextInput, Pressable, StyleSheet, ScrollView, Platform, Animated, Modal, Image, Alert, ActivityIndicator } from 'react-native';
+import { useState, useRef, useEffect } from 'react';
 import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Dropdown } from 'react-native-element-dropdown';
+import * as ImagePicker from 'expo-image-picker';
+import { router } from 'expo-router';
+import { authService } from '@/services/auth.service';
+import Toast from '@/components/toast';
 
 export default function CreateScholarshipPage() {
   const [type, setType] = useState('');
@@ -20,6 +24,31 @@ export default function CreateScholarshipPage() {
   const [date, setDate] = useState(new Date());
   const [showDescriptionModal, setShowDescriptionModal] = useState(false);
   const [tempDescription, setTempDescription] = useState('');
+  const [imageUri, setImageUri] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [toastVisible, setToastVisible] = useState(false);
+  const [toastType, setToastType] = useState<'success' | 'error'>('success');
+  const [toastTitle, setToastTitle] = useState('');
+  const [toastMessage, setToastMessage] = useState('');
+
+  const showToast = (type: 'success' | 'error', title: string, message: string) => {
+    setToastType(type);
+    setToastTitle(title);
+    setToastMessage(message);
+    setToastVisible(true);
+    setTimeout(() => setToastVisible(false), 3000);
+  };
+
+  useEffect(() => {
+    const requestPermissions = async () => {
+      try {
+        await ImagePicker.requestMediaLibraryPermissionsAsync();
+      } catch (error) {
+        console.error('Error requesting permissions:', error);
+      }
+    };
+    requestPermissions();
+  }, []);
 
   const typeDropdownRotation = useRef(new Animated.Value(0)).current;
   const typeDropdownScale = useRef(new Animated.Value(1)).current;
@@ -144,6 +173,94 @@ export default function CreateScholarshipPage() {
     setDocuments(prevDocuments => prevDocuments.filter((_, i) => i !== index));
   };
 
+  const pickImage = async () => {
+    try {
+      const permissionResult = await ImagePicker.requestMediaLibraryPermissionsAsync();
+      
+      if (permissionResult.granted === false) {
+        showToast('error', 'Permission Required', 'Camera roll permission is required');
+        return;
+      }
+
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        allowsEditing: true,
+        aspect: [1, 1],
+        quality: 0.8,
+      });
+
+      if (!result.canceled && result.assets[0]) {
+        setImageUri(result.assets[0].uri);
+      }
+    } catch (error) {
+      console.error('Error picking image:', error);
+      showToast('error', 'Error', 'Failed to pick image. Please try again.');
+    }
+  };
+
+  const handleSubmit = async () => {
+    if (!title.trim()) {
+      showToast('error', 'Validation Error', 'Please enter a scholarship title');
+      return;
+    }
+
+    if (!totalAmount.trim() || isNaN(parseFloat(totalAmount))) {
+      showToast('error', 'Validation Error', 'Please enter a valid total amount');
+      return;
+    }
+
+    if (!totalSlot.trim() || isNaN(parseInt(totalSlot)) || parseInt(totalSlot) <= 0) {
+      showToast('error', 'Validation Error', 'Please enter a valid total slot');
+      return;
+    }
+
+    if (criteria.length === 0) {
+      showToast('error', 'Validation Error', 'Please add at least one eligibility criterion');
+      return;
+    }
+
+    if (documents.length === 0) {
+      showToast('error', 'Validation Error', 'Please add at least one required document');
+      return;
+    }
+
+    setIsLoading(true);
+
+    try {
+      // Create the scholarship
+      const scholarshipData = {
+        type: type || undefined,
+        purpose: purpose || undefined,
+        title: title.trim(),
+        description: description.trim() || undefined,
+        total_amount: parseFloat(totalAmount),
+        total_slot: parseInt(totalSlot),
+        application_deadline: deadline || undefined,
+        criteria,
+        required_documents: documents,
+      };
+
+      const result = await authService.createScholarship(scholarshipData);
+
+      if (result.success && result.scholarship) {
+        const scholarshipId = result.scholarship.scholarship_id;
+
+        if (imageUri) {
+          await authService.uploadScholarshipImage(scholarshipId, imageUri);
+        }
+
+        showToast('success', 'Success', 'Scholarship created successfully!');
+      } else {
+        showToast('error', 'Error', result.message || 'Failed to create scholarship');
+      }
+    } catch (error) {
+      console.error('Error creating scholarship:', error);
+      showToast('error', 'Error', 'Failed to create scholarship. Please try again.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
   return (
     <View style={styles.container}>
       {/* Header */}
@@ -163,12 +280,27 @@ export default function CreateScholarshipPage() {
         showsVerticalScrollIndicator={false}
       >
         {/* Image Upload Area */}
-        <View style={styles.uploadContainer}>
-          <View style={styles.uploadBox}>
-            <MaterialIcons name="file-upload" size={48} color="#5B7BA6" />
-            <Text style={styles.uploadText}>Drag and drop an image or click to select</Text>
-          </View>
-        </View>
+        <Pressable 
+          onPress={pickImage} 
+          style={[styles.uploadContainer, imageUri && styles.uploadContainerWithImage]}
+        >
+          {imageUri ? (
+            <View style={styles.imageContainer}>
+              <Image source={{ uri: imageUri }} style={styles.uploadedImage} />
+              <Pressable 
+                style={styles.removeImageButton}
+                onPress={() => setImageUri(null)}
+              >
+                <MaterialIcons name="close" size={21} color="#F0F7FF" />
+              </Pressable>
+            </View>
+          ) : (
+            <Pressable onPress={pickImage} style={styles.uploadBox}>
+              <MaterialIcons name="file-upload" size={48} color="#5B7BA6" />
+              <Text style={styles.uploadText}>Tap to upload scholarship image</Text>
+            </Pressable>
+          )}
+        </Pressable>
 
         {/* Dropdowns */}
         <View style={styles.row}>
@@ -378,8 +510,16 @@ export default function CreateScholarshipPage() {
         </View>
 
         {/* Create Button */}
-        <Pressable style={styles.createButton}>
-          <Text style={styles.createButtonText}>Create Scholarship</Text>
+        <Pressable 
+          style={[styles.createButton, isLoading && styles.createButtonDisabled]} 
+          onPress={handleSubmit}
+          disabled={isLoading}
+        >
+          {isLoading ? (
+            <ActivityIndicator color="#F0F7FF" />
+          ) : (
+            <Text style={styles.createButtonText}>Create Scholarship</Text>
+          )}
         </Pressable>
       </ScrollView>
 
@@ -421,6 +561,14 @@ export default function CreateScholarshipPage() {
           </View>
         </View>
       </Modal>
+
+      {/* Toast */}
+      <Toast
+        visible={toastVisible}
+        type={toastType}
+        title={toastTitle}
+        message={toastMessage}
+      />
     </View>
   );
 }
@@ -472,7 +620,6 @@ const styles = StyleSheet.create({
     padding: 60,
     marginBottom: 18,
     backgroundColor: 'transparent',
-    opacity: 0.8,
   },
   uploadBox: {
     borderWidth: 2,
@@ -484,6 +631,11 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     backgroundColor: 'transparent',
   },
+  uploadContainerWithImage: {
+    padding: 0,
+    borderWidth: 0,
+    borderStyle: 'solid',
+  },
   uploadText: {
     fontFamily: 'BreeSerif_400Regular',
     marginTop: 12,
@@ -491,6 +643,29 @@ const styles = StyleSheet.create({
     color: '#3A52A6',
     opacity: 0.7,
     textAlign: 'center',
+  },
+  imageContainer: {
+    position: 'relative',
+    width: '100%',
+    aspectRatio: 1,
+    borderRadius: 8,
+    overflow: 'hidden',
+    marginBottom: 18,
+  },
+  uploadedImage: {
+    aspectRatio: 1,
+    resizeMode: 'cover',
+  },
+  removeImageButton: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    borderRadius: 20,
+    width: 28,
+    height: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   row: {
     flexDirection: 'row',
@@ -623,6 +798,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginTop: 8,
     marginBottom: 16,
+  },
+  createButtonDisabled: {
+    opacity: 0.6,
   },
   createButtonText: {
     fontFamily: 'BreeSerif_400Regular',

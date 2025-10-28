@@ -258,6 +258,84 @@ class AuthService {
       message: response.message
     };
   }
+
+  async createScholarship(scholarshipData: {
+    type?: string;
+    purpose?: string;
+    title: string;
+    description?: string;
+    total_amount: number;
+    total_slot: number;
+    application_deadline?: string;
+    criteria: string[];
+    required_documents: string[];
+  }): Promise<{ success: boolean; scholarship?: any; message: string }> {
+    const response = await this.authenticatedRequest('/scholarship/create', {
+      method: 'POST',
+      body: JSON.stringify(scholarshipData)
+    });
+
+    return {
+      success: response.success,
+      scholarship: response.data?.scholarship,
+      message: response.message
+    };
+  }
+
+  async uploadScholarshipImage(scholarshipId: string, imageUri: string): Promise<{ success: boolean; image_url?: string; message: string }> {
+    try {
+      const token = await this.getToken();
+      
+      if (!token) {
+        return {
+          success: false,
+          message: 'No authentication token found'
+        };
+      }
+
+      // Create FormData for file upload
+      const formData = new FormData();
+      formData.append('image', {
+        uri: imageUri,
+        type: 'image/jpeg',
+        name: 'scholarship.jpg',
+      } as any);
+
+      const response = await fetch(`${EXPO_API_URL}/scholarship/${scholarshipId}/image`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+        },
+        body: formData,
+      });
+
+      const result = await response.json();
+
+      return {
+        success: response.ok,
+        image_url: result.image_url,
+        message: result.message || (response.ok ? 'Scholarship image uploaded successfully' : 'Failed to upload scholarship image')
+      };
+    } catch (error) {
+      console.error('Scholarship image upload error:', error);
+      return {
+        success: false,
+        message: `Failed to connect to server at ${EXPO_API_URL}`
+      };
+    }
+  }
+
+  async getAllScholarships(): Promise<{ success: boolean; scholarships?: any; message: string }> {
+    const response = await this.authenticatedRequest('/scholarship/', {
+      method: 'GET'
+    });
+
+    return {
+      success: response.success,
+      scholarships: response.data?.scholarships,
+      message: response.message
+    };
+  }
 }
 
 export const authService = new AuthService();
