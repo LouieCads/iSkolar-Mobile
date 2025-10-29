@@ -1,9 +1,10 @@
 import { View, Text, Pressable, StyleSheet, ScrollView, ActivityIndicator, RefreshControl } from 'react-native';
 import { useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import ScholarshipCard from '@/components/scholarship-card';
 import ScholarshipMetrics from '@/components/scholarship-metrics';
+import Header from '@/components/header';
 import { scholarshipService } from '@/services/scholarship.service';
 
 interface Sponsor {
@@ -37,6 +38,7 @@ export default function DiscoverPage() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [searchQuery, setSearchQuery] = useState('');
 
   const fetchScholarships = useCallback(async () => {
     try {
@@ -67,7 +69,6 @@ export default function DiscoverPage() {
   }, [fetchScholarships]);
 
   const handleScholarshipPress = (scholarshipId: string) => {
-    // Navigate to scholarship details page
     router.push(`/scholarship/${scholarshipId}` as any);
   };
 
@@ -99,18 +100,58 @@ export default function DiscoverPage() {
     return tags;
   };
 
+  // Search 
+  const filteredScholarships = useMemo(() => {
+    if (!searchQuery.trim()) {
+      return scholarships;
+    }
+
+    const query = searchQuery.toLowerCase().trim();
+
+    return scholarships.filter((scholarship) => {
+      if (scholarship.title?.toLowerCase().includes(query)) {
+        return true;
+      }
+
+      if (scholarship.sponsor?.organization_name?.toLowerCase().includes(query)) {
+        return true;
+      }
+
+      if (scholarship.type?.toLowerCase().includes(query)) {
+        return true;
+      }
+
+      if (scholarship.purpose?.toLowerCase().includes(query)) {
+        return true;
+      }
+
+      if (scholarship.criteria?.some(c => c.toLowerCase().includes(query))) {
+        return true;
+      }
+
+      if (scholarship.required_documents?.some(d => d.toLowerCase().includes(query))) {
+        return true;
+      }
+
+      if (scholarship.total_amount?.toString().includes(query)) {
+        return true;
+      }
+
+      return false;
+    });
+  }, [scholarships, searchQuery]);
+
+  const handleSearch = useCallback((query: string) => {
+    setSearchQuery(query);
+  }, []);
+
   return (
     <View style={styles.container}>
-      <View style={styles.header}>
-        <View style={styles.logoContainer}>
-          <Ionicons name="school" size={32} color="#3A52A6" />
-          <Text style={styles.logoText}>Discover</Text>
-        </View>
-        <Pressable style={styles.searchButton}>
-          <Ionicons name="search" size={20} color="#666" />
-          <Text style={styles.searchText}>Search</Text>
-        </Pressable>
-      </View>
+      <Header 
+        title="Discover" 
+        onSearch={handleSearch}
+        showSearch={true}
+      />
 
       <ScholarshipMetrics scholarships={scholarships} />
 
@@ -127,10 +168,15 @@ export default function DiscoverPage() {
             <Text style={styles.retryButtonText}>Retry</Text>
           </Pressable>
         </View>
-      ) : scholarships.length === 0 ? (
+      ) : filteredScholarships.length === 0 ? (
         <View style={styles.centerContainer}>
-          <Ionicons name="document-outline" size={48} color="#C0C0C0" />
-          <Text style={styles.emptyText}>No scholarships available</Text>
+          <Ionicons name="document-outline" size={45} color="#C0C0C0" />
+          <Text style={styles.emptyText}>
+            {searchQuery ? 'No scholarships match your search' : 'No scholarships available'}
+          </Text>
+          {searchQuery && (
+            <Text style={styles.searchHint}>Try different keywords</Text>
+          )}
         </View>
       ) : (
         <ScrollView 
@@ -145,7 +191,14 @@ export default function DiscoverPage() {
             />
           }
         >
-          {scholarships.map((scholarship) => (
+          {searchQuery && (
+            <View style={styles.searchResultsHeader}>
+              <Text style={styles.searchResultsText}>
+                Found {filteredScholarships.length} scholarship{filteredScholarships.length !== 1 ? 's' : ''}
+              </Text>
+            </View>
+          )}
+          {filteredScholarships.map((scholarship) => (
             <ScholarshipCard
               key={scholarship.scholarship_id}
               scholarship_id={scholarship.scholarship_id}
@@ -173,39 +226,6 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: '#F5F5F5',
   },
-  header: {
-    backgroundColor: '#fff',
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 20,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  logoText: {
-    fontFamily: 'BreeSerif_400Regular',
-    fontSize: 24,
-    color: '#3A52A6',
-    marginLeft: 8,
-  },
-  searchButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F0F0F0',
-    paddingHorizontal: 18,
-    paddingVertical: 6,
-    borderRadius: 20,
-    gap: 8,
-  },
-  searchText: {
-    fontFamily: 'BreeSerif_400Regular',
-    color: '#5D6673',
-    fontSize: 13,
-  },
   scrollView: {
     flex: 1,
     paddingHorizontal: 16,
@@ -220,20 +240,26 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 16,
     color: '#5D6673',
-    marginTop: 16,
+    marginTop: 14,
   },
   errorText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 16,
-    color: '#5D6673',
-    marginTop: 16,
+    color: 'rgba(93, 102, 115, 1)',
+    marginTop: 14,
     textAlign: 'center',
   },
   emptyText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 16,
     color: '#999',
-    marginTop: 16,
+    marginTop: 14,
+  },
+  searchHint: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#C0C0C0',
+    marginTop: 6,
   },
   retryButton: {
     backgroundColor: '#3A52A6',
@@ -246,6 +272,15 @@ const styles = StyleSheet.create({
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 16,
     color: '#fff',
+  },
+  searchResultsHeader: {
+    paddingVertical: 12,
+    paddingHorizontal: 4,
+  },
+  searchResultsText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    color: '#5D6673',
   },
   bottomPadding: {
     height: 20,
