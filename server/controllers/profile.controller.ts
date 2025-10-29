@@ -69,8 +69,7 @@ const generateSasUrl = (blobName: string): string => {
 
     const blockBlobClient = containerClient.getBlockBlobClient(blobName);
     const sasUrl = `${blockBlobClient.url}?${sasToken}`;
-    
-    console.log('Generated SAS URL successfully for:', blobName);
+
     return sasUrl;
   } catch (error) {
     console.error('Error generating SAS URL:', error);
@@ -179,7 +178,6 @@ export const uploadProfilePicture = async (req: AuthenticatedRequest, res: Respo
         const oldBlobName = urlParts.slice(-2).join('/');
         const oldBlockBlobClient = containerClient.getBlockBlobClient(oldBlobName);
         await oldBlockBlobClient.deleteIfExists();
-        console.log('Deleted old profile picture:', oldBlobName);
       } catch (deleteError) {
         console.warn("Failed to delete old profile picture:", deleteError);
       }
@@ -189,8 +187,6 @@ export const uploadProfilePicture = async (req: AuthenticatedRequest, res: Respo
     const fileName = `profile-${userId}-${uuidv4()}.${fileExtension}`;
     const blobName = `profiles/${fileName}`;
 
-    console.log('Uploading file:', { blobName, size: req.file.size, mimetype: req.file.mimetype });
-
     const blockBlobClient = containerClient.getBlockBlobClient(blobName);
     
     await blockBlobClient.upload(req.file.buffer, req.file.size, {
@@ -199,16 +195,10 @@ export const uploadProfilePicture = async (req: AuthenticatedRequest, res: Respo
       },
     });
 
-    console.log('File uploaded successfully to Azure');
-
     const blobUrl = generateSasUrl(blobName);
-    
-    console.log('SAS URL generated:', blobUrl.substring(0, 100) + '...');
 
     user.profile_url = blobUrl;
     await user.save();
-
-    console.log('Database updated with new profile URL');
 
     return res.status(200).json({
       success: true,

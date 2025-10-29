@@ -1,6 +1,6 @@
 import { DataTypes, Model, Optional } from "sequelize";
 import sequelize from "../config/database"; 
-import User from "./Users";
+import User from "./Users"
 
 interface SponsorAttributes {
   sponsor_id: string;
@@ -14,7 +14,6 @@ interface SponsorAttributes {
   updated_at?: Date;
 }
 
-// Required Fields
 interface SponsorCreationAttributes extends Optional<SponsorAttributes, "sponsor_id"> {}
 
 class Sponsor extends Model<SponsorAttributes, SponsorCreationAttributes> implements SponsorAttributes {
@@ -27,6 +26,17 @@ class Sponsor extends Model<SponsorAttributes, SponsorCreationAttributes> implem
   public has_completed_profile?: boolean;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
+
+  static associate(models: any) {
+    Sponsor.belongsTo(models.User, {
+      foreignKey: "user_id",
+      as: "user",
+    });
+    Sponsor.hasMany(models.Scholarship, {
+      foreignKey: "sponsor_id",
+      as: "scholarships",
+    });
+  }
 }
 
 Sponsor.init(

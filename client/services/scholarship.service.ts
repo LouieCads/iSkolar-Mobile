@@ -2,7 +2,7 @@ import { authService } from './auth.service';
 
 const EXPO_API_URL = process.env.EXPO_PUBLIC_API_URL;
 
-export interface ScholarshipData {
+interface ScholarshipData {
   type?: string;
   purpose?: string;
   title: string;
@@ -14,8 +14,37 @@ export interface ScholarshipData {
   required_documents: string[];
 }
 
+interface Sponsor {
+  sponsor_id: string;
+  organization_name: string;
+  logo_url?: string;
+  email?: string;
+}
+
+interface Scholarship {
+  scholarship_id: string;
+  sponsor_id: string;
+  status: string;
+  type?: string;
+  purpose?: string;
+  title: string;
+  total_amount: number;
+  total_slot: number;
+  application_deadline?: string;
+  criteria: string[];
+  required_documents: string[];
+  image_url?: string;
+  created_at: string;
+  updated_at: string;
+  sponsor: Sponsor;
+}
+
 class ScholarshipService {
-  async createScholarship(scholarshipData: ScholarshipData): Promise<{ success: boolean; scholarship?: any; message: string }> {
+  async createScholarship(scholarshipData: ScholarshipData): Promise<{ 
+    success: boolean; 
+    scholarship?: any; 
+    message: string 
+  }> {
     const response = await authService.authenticatedRequest('/scholarship/create', {
       method: 'POST',
       body: JSON.stringify(scholarshipData)
@@ -28,7 +57,11 @@ class ScholarshipService {
     };
   }
 
-  async uploadScholarshipImage(scholarshipId: string, imageUri: string): Promise<{ success: boolean; image_url?: string; message: string }> {
+  async uploadScholarshipImage(scholarshipId: string, imageUri: string): Promise<{ 
+    success: boolean; 
+    image_url?: string; 
+    message: string 
+  }> {
     try {
       const token = await authService.getToken();
       
@@ -71,16 +104,40 @@ class ScholarshipService {
     }
   }
 
-  async getAllScholarships(): Promise<{ success: boolean; scholarships?: any; message: string }> {
-    const response = await authService.authenticatedRequest('/scholarship/', {
-      method: 'GET'
-    });
+  async getAllScholarships(): Promise<{ 
+    success: boolean; 
+    scholarships?: Scholarship[]; 
+    message: string 
+  }> {
+    try {
+      const response = await fetch(`${EXPO_API_URL}/scholarship/`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
 
-    return {
-      success: response.success,
-      scholarships: response.data?.scholarships,
-      message: response.message
-    };
+      const result = await response.json();
+
+      if (!response.ok) {
+        return {
+          success: false,
+          message: result.message || 'Failed to fetch scholarships'
+        };
+      }
+
+      return {
+        success: true,
+        scholarships: result.scholarships,
+        message: result.message || 'Scholarships fetched successfully'
+      };
+    } catch (error) {
+      console.error('Fetch scholarships error:', error);
+      return {
+        success: false,
+        message: `Failed to connect to server at ${EXPO_API_URL}`
+      };
+    }
   }
 }
 

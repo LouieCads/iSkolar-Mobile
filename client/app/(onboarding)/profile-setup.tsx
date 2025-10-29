@@ -224,7 +224,7 @@ export default function ProfileSetupPage() {
 
   const orgTypeItems = [
     { label: 'Non-profit', value: 'non_profit' },
-    { label: 'Private Company', value: 'private-Company' },
+    { label: 'Private Company', value: 'private_company' },
     { label: 'Government Agency', value: 'government_agency' },
     { label: 'Educational Institution', value: 'educational_institution' },
     { label: 'Foundation', value: 'foundation' },

@@ -69,8 +69,6 @@ const generateSasUrl = (blobName: string): string => {
 
     const blockBlobClient = containerClient.getBlockBlobClient(blobName);
     const sasUrl = `${blockBlobClient.url}?${sasToken}`;
-    
-    console.log('Generated SAS URL successfully for:', blobName);
     return sasUrl;
   } catch (error) {
     console.error('Error generating SAS URL:', error);
@@ -242,7 +240,6 @@ export const uploadScholarshipImage = async (req: AuthenticatedRequest, res: Res
         const oldBlobName = urlParts.slice(-2).join('/');
         const oldBlockBlobClient = containerClient.getBlockBlobClient(oldBlobName);
         await oldBlockBlobClient.deleteIfExists();
-        console.log('Deleted old scholarship image:', oldBlobName);
       } catch (deleteError) {
         console.warn("Failed to delete old scholarship image:", deleteError);
       }
@@ -252,8 +249,6 @@ export const uploadScholarshipImage = async (req: AuthenticatedRequest, res: Res
     const fileName = `scholarship-${scholarship_id}-${uuidv4()}.${fileExtension}`;
     const blobName = `scholarships/${fileName}`;
 
-    console.log('Uploading scholarship image:', { blobName, size: req.file.size, mimetype: req.file.mimetype });
-
     const blockBlobClient = containerClient.getBlockBlobClient(blobName);
     
     await blockBlobClient.upload(req.file.buffer, req.file.size, {
@@ -262,16 +257,10 @@ export const uploadScholarshipImage = async (req: AuthenticatedRequest, res: Res
       },
     });
 
-    console.log('Scholarship image uploaded successfully to Azure');
-
     const blobUrl = generateSasUrl(blobName);
-    
-    console.log('SAS URL generated:', blobUrl.substring(0, 100) + '...');
 
     scholarship.image_url = blobUrl;
     await scholarship.save();
-
-    console.log('Database updated with new scholarship image URL');
 
     return res.status(200).json({
       success: true,
@@ -292,16 +281,45 @@ export const uploadScholarshipImage = async (req: AuthenticatedRequest, res: Res
   }
 };
 
-// Get all scholarships
+// Get all scholarships 
 export const getAllScholarships = async (req: Request, res: Response) => {
   try {
     const scholarships = await Scholarship.findAll({
+      include: [
+        {
+          model: Sponsor,
+          as: 'sponsor',
+          attributes: ['sponsor_id', 'organization_name'],
+        }
+      ],
       order: [['created_at', 'DESC']],
     });
 
+    // Format the response
+    const formattedScholarships = scholarships.map((scholarship: any) => ({
+      scholarship_id: scholarship.scholarship_id,
+      sponsor_id: scholarship.sponsor_id,
+      status: scholarship.status,
+      type: scholarship.type,
+      purpose: scholarship.purpose,
+      title: scholarship.title,
+      total_amount: scholarship.total_amount,
+      total_slot: scholarship.total_slot,
+      application_deadline: scholarship.application_deadline,
+      criteria: scholarship.criteria,
+      required_documents: scholarship.required_documents,
+      image_url: scholarship.image_url,
+      created_at: scholarship.created_at,
+      updated_at: scholarship.updated_at,
+      sponsor: {
+        sponsor_id: scholarship.sponsor?.sponsor_id,
+        organization_name: scholarship.sponsor?.organization_name,
+      }
+    }));
+
     return res.status(200).json({
       success: true,
-      scholarships
+      scholarships: formattedScholarships
     });
   } catch (error) {
     console.error("Error getting scholarships:", error);

@@ -38,6 +38,13 @@ class Scholarship extends Model<ScholarshipAttributes, ScholarshipCreationAttrib
   public required_documents!: string[];
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
+
+  static associate(models: any) {
+    Scholarship.belongsTo(models.Sponsor, {
+      foreignKey: "sponsor_id",
+      as: "sponsor",
+    });
+  }
 }
 
 Scholarship.init(

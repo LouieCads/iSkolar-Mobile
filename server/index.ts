@@ -7,11 +7,11 @@ import onboardingRoutes from "./routes/onboarding.routes";
 import profileRoutes from "./routes/profile.routes";
 import scholarshipRoutes from "./routes/scholarship.routes";
 
-// Models
-import "./models/Users";
-import "./models/Student";
-import "./models/Sponsor";
-import "./models/Scholarship";
+// Import Models
+import User from "./models/Users";
+import Student from "./models/Student";
+import Sponsor from "./models/Sponsor";
+import Scholarship from "./models/Scholarship";
 
 dotenv.config();
 const app = express();
@@ -24,11 +24,26 @@ app.use(cors({
   credentials: true
 }));
 
+// Initialize model associations
+const models = {
+  User,
+  Student,
+  Sponsor,
+  Scholarship
+};
+
+// Call associate method for each model
+Object.values(models).forEach((model: any) => {
+  if (model.associate) {
+    model.associate(models);
+  }
+});
+
 // Routes
 app.use("/auth", authRoutes);
 app.use("/onboarding", onboardingRoutes);
 app.use("/profile", profileRoutes);
-app.use("/scholarship", scholarshipRoutes)
+app.use("/scholarship", scholarshipRoutes);
 
 sequelize
   .authenticate()
@@ -46,5 +61,3 @@ sequelize
 app.listen(PORT, () => {
   console.log(`🚀 Server running on http://0.0.0.0:${PORT}`);
 });
-
-

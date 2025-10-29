@@ -27,6 +27,13 @@ class Student extends Model<StudentAttributes, StudentCreationAttributes> implem
   public has_completed_profile?: boolean;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
+
+  static associate(models: any) {
+    Student.belongsTo(models.User, {
+      foreignKey: "user_id",
+      as: "user",
+    });
+  }
 }
 
 Student.init(

@@ -23,6 +23,17 @@ class User extends Model<UserAttributes, UserCreationAttributes> implements User
   public profile_url?: string;
   public readonly created_at!: Date;
   public readonly updated_at!: Date;
+
+  static associate(models: any) {
+    User.hasOne(models.Sponsor, {
+      foreignKey: "user_id",
+      as: "sponsor",
+    });
+    User.hasOne(models.Student, {
+      foreignKey: "user_id",
+      as: "student",
+    });
+  }
 }
 
 User.init(
