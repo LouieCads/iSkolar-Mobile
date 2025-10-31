@@ -2,7 +2,7 @@ import { View, Text, Image, Pressable, StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 
-interface ScholarshipCardProps {
+interface ScholarshipManagementCardProps {
   scholarship_id: string;
   title: string;
   imageUrl?: string;
@@ -10,13 +10,14 @@ interface ScholarshipCardProps {
   deadline?: string;
   amount: number;
   slots: number;
+  applicationsCount?: number;
   criteria: string[];
   documents: string[];
-  tags: string[];
-  onPress?: () => void;
+  tags?: string[];
+  onPress: () => void;
 }
 
-export default function ScholarshipCard({
+export default function ScholarshipManagementCard({
   scholarship_id,
   title,
   imageUrl,
@@ -24,11 +25,12 @@ export default function ScholarshipCard({
   deadline,
   amount,
   slots,
+  applicationsCount,
   criteria,
   documents,
-  tags,
-  onPress
-}: ScholarshipCardProps) {
+  tags = [],
+  onPress,
+}: ScholarshipManagementCardProps) {
   const formatAmount = (value: number) => {
     return `₱ ${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
@@ -101,22 +103,33 @@ export default function ScholarshipCard({
 
         <View style={styles.cardBody}>
           <View style={styles.detailsContainer}>
-            <View style={styles.detailBox}>
+            {applicationsCount !== undefined && (
+              <View style={styles.detailBox}>
+                <View style={styles.detailHeader}>
+                  <Ionicons name="people-outline" size={12} color="#FF6B6B" />
+                  <Text style={styles.detailLabel}>Applications</Text>
+                </View>
+                <Text style={styles.applicationsText}>{applicationsCount}</Text>
+                <Text style={styles.subText}>received</Text>
+              </View>
+            )}
+
+            <View style={[styles.detailBox, styles.amountBox]}>
               <View style={styles.detailHeader}>
-                <Ionicons name="cash-outline" size={16} color="#31D0AA" />
+                <Ionicons name="cash-outline" size={12} color="#31D0AA" />
                 <Text style={styles.detailLabel}>Amount</Text>
               </View>
               <Text style={styles.amountText}>{formatAmount(amount)}</Text>
-              <Text style={styles.perScholar}>per scholar</Text>
+              <Text style={styles.subText}>per scholar</Text>
             </View>
 
             <View style={[styles.detailBox, styles.slotsBox]}>
               <View style={styles.detailHeader}>
-                <Ionicons name="people-outline" size={16} color="#607EF2" />
+                <Ionicons name="people-outline" size={12} color="#607EF2" />
                 <Text style={styles.detailLabel}>Slots</Text>
               </View>
               <Text style={styles.slotsText}>{slots}</Text>
-              <Text style={styles.scholarsText}>scholars</Text>
+              <Text style={styles.subText}>scholars</Text>
             </View>
           </View>
 
@@ -168,8 +181,8 @@ const styles = StyleSheet.create({
   card: {
     backgroundColor: '#F0F7FF',
     borderRadius: 14,
-    marginTop: 14,
     overflow: 'hidden',
+    marginBottom: 12,
     shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
@@ -205,7 +218,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tag: {
-    backgroundColor: 'rgbacardBody255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 5,
@@ -236,15 +249,18 @@ const styles = StyleSheet.create({
   },
   detailsContainer: {
     flexDirection: 'row',
-    gap: 12,
+    gap: 6,
     marginBottom: 14,
   },
   detailBox: {
     flex: 1,
     borderWidth: 2,
-    borderColor: '#31D0AA',
+    borderColor: '#FF6B6B',
     borderRadius: 12,
     padding: 8,
+  },
+  amountBox: {
+    borderColor: '#31D0AA',
   },
   slotsBox: {
     borderColor: '#607EF2',
@@ -257,8 +273,15 @@ const styles = StyleSheet.create({
   },
   detailLabel: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 13,
+    fontSize: 10.5,
     color: '#5D6673',
+  },
+  applicationsText: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 14,
+    fontWeight: 'bold',
+    color: '#FF6B6B',
+    marginBottom: 2,
   },
   amountText: {
     fontFamily: 'BreeSerif_400Regular',
@@ -267,20 +290,15 @@ const styles = StyleSheet.create({
     color: '#31D0AA',
     marginBottom: 2,
   },
-  perScholar: {
-    fontFamily: 'BreeSerif_400Regular',
-    fontSize: 11,
-    color: '#666',
-  },
   slotsText: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 14,
     color: '#607EF2',
     marginBottom: 2,
   },
-  scholarsText: {
+  subText: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 11,
+    fontSize: 9,
     color: '#666',
   },
   infoSection: {

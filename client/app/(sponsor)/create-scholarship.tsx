@@ -4,9 +4,9 @@ import { MaterialIcons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { Dropdown } from 'react-native-element-dropdown';
 import * as ImagePicker from 'expo-image-picker';
-import { router } from 'expo-router';
 import { scholarshipService } from '@/services/scholarship.service';
 import Toast from '@/components/toast';
+import Header from '@/components/header';
 
 export default function CreateScholarshipPage() {
   const [type, setType] = useState('');
@@ -279,14 +279,10 @@ export default function CreateScholarshipPage() {
   return (
     <View style={styles.container}>
       {/* Header */}
-      <View style={styles.header}>
-        <MaterialIcons name="school" size={24} color="#3A52A6" />
-        <Text style={styles.headerText}>Create Scholarship</Text>
-        <Pressable style={styles.searchButton}>
-          <MaterialIcons name="search" size={20} color="#8B9CB5" />
-          <Text style={styles.searchText}>Search</Text>
-        </Pressable>
-      </View>
+      <Header 
+        title="Create Scholarship" 
+        showSearch={false}
+      />
 
       {/* Scrollable Content */}
       <ScrollView 
@@ -607,17 +603,6 @@ const styles = StyleSheet.create({
     color: '#3A52A6',
     flex: 1,
     fontWeight: '600',
-  },
-  searchButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  searchText: {
-    fontFamily: 'BreeSerif_400Regular',
-    fontSize: 12,
-    color: '#5D6673',
-    opacity: 0.8,
   },
   scrollView: {
     flex: 1,
