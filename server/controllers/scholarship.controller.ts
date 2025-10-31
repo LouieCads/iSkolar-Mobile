@@ -281,7 +281,7 @@ export const uploadScholarshipImage = async (req: AuthenticatedRequest, res: Res
   }
 };
 
-// Get all scholarships 
+// Get all scholarships (public)
 export const getAllScholarships = async (req: Request, res: Response) => {
   try {
     const scholarships = await Scholarship.findAll({
@@ -323,6 +323,83 @@ export const getAllScholarships = async (req: Request, res: Response) => {
     });
   } catch (error) {
     console.error("Error getting scholarships:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Error getting scholarships. Please try again later."
+    });
+  }
+};
+
+// Get sponsor's scholarships
+export const getSponsorScholarships = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+
+    if (!userId) {
+      return res.status(401).json({ 
+        success: false,
+        message: "Authentication required." 
+      });
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user || user.role !== 'sponsor') {
+      return res.status(403).json({ 
+        success: false,
+        message: "Only sponsors can access." 
+      });
+    }
+
+    const sponsor = await Sponsor.findOne({ where: { user_id: userId } });
+    if (!sponsor) {
+      return res.status(404).json({ 
+        success: false,
+        message: "Sponsor profile not found." 
+      });
+    }
+
+    const scholarships = await Scholarship.findAll({
+      where: { sponsor_id: sponsor.sponsor_id },
+      include: [
+        {
+          model: Sponsor,
+          as: 'sponsor',
+          attributes: ['sponsor_id', 'organization_name'],
+        }
+      ],
+      order: [['created_at', 'DESC']],
+    });
+
+    // Format the response with applications count
+    const formattedScholarships = scholarships.map((scholarship: any) => ({
+      scholarship_id: scholarship.scholarship_id,
+      sponsor_id: scholarship.sponsor_id,
+      status: scholarship.status,
+      type: scholarship.type,
+      purpose: scholarship.purpose,
+      title: scholarship.title,
+      description: scholarship.description,
+      total_amount: scholarship.total_amount,
+      total_slot: scholarship.total_slot,
+      application_deadline: scholarship.application_deadline,
+      criteria: scholarship.criteria,
+      required_documents: scholarship.required_documents,
+      image_url: scholarship.image_url,
+      applications_count: 0, 
+      created_at: scholarship.created_at,
+      updated_at: scholarship.updated_at,
+      sponsor: {
+        sponsor_id: scholarship.sponsor?.sponsor_id,
+        organization_name: scholarship.sponsor?.organization_name,
+      }
+    }));
+
+    return res.status(200).json({
+      success: true,
+      scholarships: formattedScholarships
+    });
+  } catch (error) {
+    console.error("Error getting sponsor scholarships:", error);
     return res.status(500).json({
       success: false,
       message: "Error getting scholarships. Please try again later."

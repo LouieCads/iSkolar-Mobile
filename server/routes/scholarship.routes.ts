@@ -4,6 +4,7 @@ import {
   createScholarship, 
   uploadScholarshipImage, 
   getAllScholarships,
+  getSponsorScholarships,
   upload 
 } from "../controllers/scholarship.controller";
 
@@ -11,6 +12,9 @@ const router = Router();
 
 // Get all scholarships (public endpoint)
 router.get("/", getAllScholarships);
+
+// Get sponsor's scholarships
+router.get("/my-scholarships", authenticateToken, getSponsorScholarships);
 
 // Create scholarship 
 router.post("/create", authenticateToken, createScholarship);

@@ -28,12 +28,14 @@ interface Scholarship {
   type?: string;
   purpose?: string;
   title: string;
+  description?: string;
   total_amount: number;
   total_slot: number;
   application_deadline?: string;
   criteria: string[];
   required_documents: string[];
   image_url?: string;
+  applications_count?: number;
   created_at: string;
   updated_at: string;
   sponsor: Sponsor;
@@ -138,6 +140,22 @@ class ScholarshipService {
         message: `Failed to connect to server at ${EXPO_API_URL}`
       };
     }
+  }
+
+  async getSponsorScholarships(): Promise<{ 
+    success: boolean; 
+    scholarships?: Scholarship[]; 
+    message: string 
+  }> {
+    const response = await authService.authenticatedRequest('/scholarship/my-scholarships', {
+      method: 'GET'
+    });
+
+    return {
+      success: response.success,
+      scholarships: response.data?.scholarships,
+      message: response.message || (response.success ? 'Scholarships fetched successfully' : 'Failed to fetch scholarships')
+    };
   }
 }
 

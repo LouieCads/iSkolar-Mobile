@@ -1,6 +1,8 @@
 import { View, Text, Pressable, StyleSheet, TextInput, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useRouter } from 'expo-router';
+import { authService } from '@/services/auth.service';
 
 interface HeaderProps {
   title: string;
@@ -13,8 +15,35 @@ export default function Header({
   onSearch, 
   showSearch = true 
 }: HeaderProps) {
+  const router = useRouter();
+  const [userRole, setUserRole] = useState<string | null>(null);
   const [searchVisible, setSearchVisible] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+
+  useEffect(() => {
+    const fetchUserRole = async () => {
+      try {
+        const result = await authService.getProfileStatus();
+        if (result.success && result.user?.role) {
+          setUserRole(result.user.role);
+        }
+      } catch (error) {
+        console.error('Error fetching user role:', error);
+      }
+    };
+
+    fetchUserRole();
+  }, []);
+
+  const handleLogoPress = () => {
+    if (userRole === 'sponsor') {
+      router.push('/my-scholarships');
+    } else if (userRole === 'student') {
+      router.push('/home');
+    } else {
+      router.push('/home');
+    }
+  };
 
   const handleSearchPress = () => {
     setSearchVisible(true);
@@ -40,7 +69,9 @@ export default function Header({
       {!searchVisible ? (
         <>
           <View style={styles.logoContainer}>
-            <Image source={require('../assets/images/iskolar.png')} style={styles.image}/>
+            <Pressable onPress={handleLogoPress}>
+              <Image source={require('../assets/images/iskolar.png')} style={styles.image}/>
+            </Pressable>
             <Text style={styles.logoText}>{title}</Text>
           </View>
           {showSearch && (
@@ -93,12 +124,12 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   image: {
-    width: 50,
-    height: 50,
+    width: 48,
+    height: 48,
   },
   logoText: {
     fontFamily: 'BreeSerif_400Regular',
-    fontSize: 24,
+    fontSize: 20,
     color: '#3A52A6',
     marginLeft: 4,
   },
