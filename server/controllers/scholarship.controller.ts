@@ -407,4 +407,214 @@ export const getSponsorScholarships = async (req: AuthenticatedRequest, res: Res
   }
 };
 
+// Get single scholarship (sponsor-owned details, or public basic)
+export const getScholarshipById = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const { scholarship_id } = req.params as { scholarship_id: string };
+
+    const scholarship = await Scholarship.findByPk(scholarship_id, {
+      include: [
+        {
+          model: Sponsor,
+          as: 'sponsor',
+          attributes: ['sponsor_id', 'organization_name'],
+        }
+      ]
+    });
+
+    if (!scholarship) {
+      return res.status(404).json({
+        success: false,
+        message: 'Scholarship not found.'
+      });
+    }
+
+    return res.status(200).json({
+      success: true,
+      scholarship: {
+        scholarship_id: scholarship.scholarship_id,
+        sponsor_id: scholarship.sponsor_id,
+        status: scholarship.status,
+        type: scholarship.type,
+        purpose: scholarship.purpose,
+        title: scholarship.title,
+        description: scholarship.description,
+        total_amount: scholarship.total_amount,
+        total_slot: scholarship.total_slot,
+        application_deadline: scholarship.application_deadline,
+        criteria: scholarship.criteria,
+        required_documents: scholarship.required_documents,
+        image_url: scholarship.image_url,
+        applications_count: 0,
+        created_at: scholarship.created_at,
+        updated_at: scholarship.updated_at,
+        sponsor: {
+          sponsor_id: (scholarship as any).sponsor?.sponsor_id,
+          organization_name: (scholarship as any).sponsor?.organization_name,
+        }
+      }
+    });
+  } catch (error) {
+    console.error('Error getting scholarship by id:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error getting scholarship. Please try again later.'
+    });
+  }
+};
+
+// Update scholarship (sponsor only and must own)
+export const updateScholarship = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { scholarship_id } = req.params as { scholarship_id: string };
+
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: 'Authentication required.'
+      });
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user || user.role !== 'sponsor') {
+      return res.status(403).json({
+        success: false,
+        message: 'Only sponsors can update scholarships.'
+      });
+    }
+
+    const sponsor = await Sponsor.findOne({ where: { user_id: userId } });
+    if (!sponsor) {
+      return res.status(404).json({
+        success: false,
+        message: 'Sponsor profile not found.'
+      });
+    }
+
+    const scholarship = await Scholarship.findByPk(scholarship_id);
+    if (!scholarship) {
+      return res.status(404).json({
+        success: false,
+        message: 'Scholarship not found.'
+      });
+    }
+
+    if (scholarship.sponsor_id !== sponsor.sponsor_id) {
+      return res.status(403).json({
+        success: false,
+        message: "You don't have permission to update this scholarship."
+      });
+    }
+
+    const {
+      type,
+      purpose,
+      title,
+      description,
+      total_amount,
+      total_slot,
+      application_deadline,
+      criteria,
+      required_documents,
+      status,
+    } = req.body as any;
+
+    let criteriaArray: string[] | undefined = undefined;
+    let documentsArray: string[] | undefined = undefined;
+
+    try {
+      if (typeof criteria !== 'undefined') {
+        criteriaArray = typeof criteria === 'string' ? JSON.parse(criteria) : criteria;
+        if (!Array.isArray(criteriaArray)) throw new Error('criteria must be array');
+      }
+      if (typeof required_documents !== 'undefined') {
+        documentsArray = typeof required_documents === 'string' ? JSON.parse(required_documents) : required_documents;
+        if (!Array.isArray(documentsArray)) throw new Error('required_documents must be array');
+      }
+    } catch (parseError) {
+      return res.status(400).json({
+        success: false,
+        message: 'Invalid format for criteria or required_documents arrays'
+      });
+    }
+
+    if (typeof title !== 'undefined') scholarship.title = title;
+    if (typeof description !== 'undefined') scholarship.description = description;
+    if (typeof type !== 'undefined') scholarship.type = type;
+    if (typeof purpose !== 'undefined') scholarship.purpose = purpose;
+    if (typeof status !== 'undefined') scholarship.status = status;
+    if (typeof total_amount !== 'undefined') scholarship.total_amount = parseFloat(total_amount);
+    if (typeof total_slot !== 'undefined') scholarship.total_slot = parseInt(total_slot);
+    if (typeof application_deadline !== 'undefined') scholarship.application_deadline = application_deadline ? new Date(application_deadline) : null as any;
+    if (typeof criteriaArray !== 'undefined') scholarship.criteria = criteriaArray;
+    if (typeof documentsArray !== 'undefined') scholarship.required_documents = documentsArray;
+
+    await scholarship.save();
+
+    return res.status(200).json({
+      success: true,
+      message: 'Scholarship updated successfully',
+      scholarship
+    });
+  } catch (error) {
+    console.error('Error updating scholarship:', error);
+    return res.status(500).json({
+      success: false,
+      message: 'Error updating scholarship. Please try again later.'
+    });
+  }
+};
+
+// Delete scholarship (sponsor only and must own)
+export const deleteScholarship = async (req: AuthenticatedRequest, res: Response) => {
+  try {
+    const userId = req.user?.id;
+    const { scholarship_id } = req.params as { scholarship_id: string };
+
+    if (!userId) {
+      return res.status(401).json({ success: false, message: 'Authentication required.' });
+    }
+
+    const user = await User.findByPk(userId);
+    if (!user || user.role !== 'sponsor') {
+      return res.status(403).json({ success: false, message: 'Only sponsors can delete scholarships.' });
+    }
+
+    const sponsor = await Sponsor.findOne({ where: { user_id: userId } });
+    if (!sponsor) {
+      return res.status(404).json({ success: false, message: 'Sponsor profile not found.' });
+    }
+
+    const scholarship = await Scholarship.findByPk(scholarship_id);
+    if (!scholarship) {
+      return res.status(404).json({ success: false, message: 'Scholarship not found.' });
+    }
+
+    if (scholarship.sponsor_id !== sponsor.sponsor_id) {
+      return res.status(403).json({ success: false, message: "You don't have permission to delete this scholarship." });
+    }
+
+    // Attempt delete of associated image if exists
+    if (scholarship.image_url) {
+      try {
+        const urlWithoutSas = scholarship.image_url.split('?')[0];
+        const urlParts = urlWithoutSas.split('/');
+        const oldBlobName = urlParts.slice(-2).join('/');
+        const oldBlockBlobClient = containerClient.getBlockBlobClient(oldBlobName);
+        await oldBlockBlobClient.deleteIfExists();
+      } catch (err) {
+        console.warn('Failed to delete scholarship image during deletion:', err);
+      }
+    }
+
+    await scholarship.destroy();
+
+    return res.status(200).json({ success: true, message: 'Scholarship deleted successfully' });
+  } catch (error) {
+    console.error('Error deleting scholarship:', error);
+    return res.status(500).json({ success: false, message: 'Error deleting scholarship. Please try again later.' });
+  }
+};
+
 export { upload };
