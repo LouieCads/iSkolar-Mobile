@@ -6,6 +6,7 @@ import ScholarshipCard from '@/components/scholarship-card';
 import ScholarshipMetrics from '@/components/scholarship-metrics';
 import Header from '@/components/header';
 import { scholarshipService } from '@/services/scholarship.service';
+import CreateScholarshipButton from '@/components/create-scholarship-button';
 
 interface Sponsor {
   sponsor_id: string;
@@ -145,6 +146,10 @@ export default function DiscoverPage() {
     setSearchQuery(query);
   }, []);
 
+  const handleCreateScholarship = () => {
+    router.push('./create-scholarship' as any);
+  };
+
   return (
     <View style={styles.container}>
       <Header 
@@ -217,6 +222,11 @@ export default function DiscoverPage() {
           <View style={styles.bottomPadding} />
         </ScrollView>
       )}
+
+      {/* Floating Create Button */}
+      {!loading && !error && (
+        <CreateScholarshipButton onPress={handleCreateScholarship} />
+      )}
     </View>
   );
 }
@@ -225,6 +235,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F5F5F5',
+    paddingBottom: 40,
   },
   scrollView: {
     flex: 1,

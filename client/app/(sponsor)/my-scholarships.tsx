@@ -6,6 +6,7 @@ import ScholarshipManagementCard from '@/components/scholarship-management-card'
 import ScholarshipManagementMetrics from '@/components/scholarship-management-metrics';
 import Header from '@/components/header';
 import { scholarshipService } from '@/services/scholarship.service';
+import CreateScholarshipButton from '@/components/create-scholarship-button';
 
 interface Sponsor {
   sponsor_id: string;
@@ -241,9 +242,7 @@ export default function MyScholarshipsPage() {
 
       {/* Floating Create Button */}
       {!loading && !error && (
-        <Pressable style={styles.floatingButton} onPress={handleCreateScholarship}>
-          <Ionicons name="add" size={25} color="#F0F7FF" />
-        </Pressable>
+        <CreateScholarshipButton onPress={handleCreateScholarship} />
       )}
     </View>
   );
@@ -253,6 +252,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#F0F7FF',
+    paddingBottom: 28,
   },
   scrollView: {
     flex: 1,
@@ -349,21 +349,5 @@ const styles = StyleSheet.create({
   },
   bottomPadding: {
     height: 20,
-  },
-  floatingButton: {
-    position: 'absolute',
-    bottom: 68,
-    right: 14,
-    width: 54,
-    height: 54,
-    borderRadius: 28,
-    backgroundColor: '#EFA508',
-    justifyContent: 'center',
-    alignItems: 'center',
-    elevation: 8,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
   },
 });
