@@ -59,6 +59,63 @@ class ScholarshipService {
     };
   }
 
+  async getScholarshipById(scholarshipId: string): Promise<{
+    success: boolean;
+    scholarship?: Scholarship;
+    message: string;
+  }> {
+    try {
+      const response = await fetch(`${EXPO_API_URL}/scholarship/${scholarshipId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        }
+      });
+
+      const result = await response.json();
+
+      if (!response.ok) {
+        return { success: false, message: result.message || 'Failed to fetch scholarship' };
+      }
+
+      return { success: true, scholarship: result.scholarship, message: 'Scholarship fetched successfully' };
+    } catch (error) {
+      console.error('Fetch scholarship error:', error);
+      return { success: false, message: `Failed to connect to server at ${EXPO_API_URL}` };
+    }
+  }
+
+  async updateScholarship(scholarshipId: string, data: Partial<ScholarshipData> & { status?: string }): Promise<{
+    success: boolean;
+    scholarship?: any;
+    message: string;
+  }> {
+    const response = await authService.authenticatedRequest(`/scholarship/${scholarshipId}`, {
+      method: 'PUT',
+      body: JSON.stringify(data)
+    });
+
+    return {
+      success: response.success,
+      scholarship: response.data?.scholarship,
+      message: response.message || (response.success ? 'Scholarship updated successfully' : 'Failed to update scholarship')
+    };
+  }
+
+  async deleteScholarship(scholarshipId: string): Promise<{
+    success: boolean;
+    message: string;
+  }> {
+    const response = await authService.authenticatedRequest(`/scholarship/${scholarshipId}`, {
+      method: 'DELETE'
+    });
+
+    return {
+      success: response.success,
+      message: response.message || (response.success ? 'Scholarship deleted successfully' : 'Failed to delete scholarship')
+    };
+  }
+
   async uploadScholarshipImage(scholarshipId: string, imageUri: string): Promise<{ 
     success: boolean; 
     image_url?: string; 
@@ -74,18 +131,28 @@ class ScholarshipService {
         };
       }
 
+      // Extract filename and determine file type
+      const filename = imageUri.split('/').pop() || 'scholarship.jpg';
+      const match = /\.(\w+)$/.exec(filename);
+      const type = match ? `image/${match[1]}` : 'image/jpeg';
+
       // Create FormData for file upload
       const formData = new FormData();
       formData.append('image', {
         uri: imageUri,
-        type: 'image/jpeg',
-        name: 'scholarship.jpg',
+        type: type,
+        name: filename,
       } as any);
+
+      console.log('Uploading to:', `${EXPO_API_URL}/scholarship/${scholarshipId}/image`);
+      console.log('Image URI:', imageUri);
+      console.log('File type:', type);
 
       const response = await fetch(`${EXPO_API_URL}/scholarship/${scholarshipId}/image`, {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
+          // DO NOT set Content-Type for FormData
         },
         body: formData,
       });
@@ -101,7 +168,7 @@ class ScholarshipService {
       console.error('Scholarship image upload error:', error);
       return {
         success: false,
-        message: `Failed to connect to server at ${EXPO_API_URL}`
+        message: error instanceof Error ? error.message : 'Failed to upload image'
       };
     }
   }

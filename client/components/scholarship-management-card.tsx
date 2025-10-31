@@ -110,7 +110,7 @@ export default function ScholarshipManagementCard({
                   <Text style={styles.detailLabel}>Applications</Text>
                 </View>
                 <Text style={styles.applicationsText}>{applicationsCount}</Text>
-                <Text style={styles.subText}>received</Text>
+                <Text style={styles.subText}>applicants</Text>
               </View>
             )}
 
