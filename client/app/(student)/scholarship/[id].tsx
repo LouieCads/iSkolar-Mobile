@@ -1,10 +1,9 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useRef, useState, useCallback } from 'react';
-import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Alert, Animated, Image } from 'react-native';
+import { View, Text, StyleSheet, Pressable, ScrollView, ActivityIndicator, Animated, Image } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import Header from '@/components/header';
 import { scholarshipService } from '@/services/scholarship.service';
-import { profileService } from '@/services/profile.service';
 
 export default function ScholarshipDetailsPage() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -12,7 +11,6 @@ export default function ScholarshipDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [scholarship, setScholarship] = useState<any>(null);
-  const [isOwner, setIsOwner] = useState(false);
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const slideAnim = useRef(new Animated.Value(8)).current;
@@ -29,19 +27,9 @@ export default function ScholarshipDetailsPage() {
     try {
       setError(null);
       setLoading(true);
-      
-      // Fetch scholarship details
       const res = await scholarshipService.getScholarshipById(String(id));
       if (res.success && res.scholarship) {
         setScholarship(res.scholarship);
-        
-        // Check ownership
-        const profileRes = await profileService.getProfile();
-        if (profileRes.success && profileRes.profile) {
-          // Check if the current user's sponsor_id matches the scholarship's sponsor_id
-          const userSponsorId = profileRes.profile.sponsor_id;
-          setIsOwner(res.scholarship.sponsor_id === userSponsorId);
-        }
       } else {
         setError(res.message);
       }
@@ -67,28 +55,6 @@ export default function ScholarshipDetailsPage() {
     if (!dateString) return 'No deadline';
     const date = new Date(dateString);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
-  };
-
-  const onEdit = () => {
-    if (!id) return;
-    router.push({ pathname: `/(sponsor)/scholarship/${id}/edit` } as any);
-  };
-
-  const onDelete = async () => {
-    if (!id) return;
-    Alert.alert('Delete Scholarship', 'Are you sure you want to delete this scholarship?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete', style: 'destructive', onPress: async () => {
-          const res = await scholarshipService.deleteScholarship(String(id));
-          if (res.success) {
-            router.back();
-          } else {
-            Alert.alert('Error', res.message);
-          }
-        }
-      }
-    ]);
   };
 
   return (
@@ -119,10 +85,10 @@ export default function ScholarshipDetailsPage() {
         >
           <View style={styles.metricSingle}>
             <Text style={styles.metricLabel}>Status</Text>
-            <Text style={[styles.metricValue, { color: '#31D0AA' }]}>{(scholarship?.status || '').toString()}</Text>
+            <Text style={[styles.metricValue, { color: '#31D0AA' }]}>{scholarship?.status || ''}</Text>
           </View>
 
-          {/* Hero/Image Card (mirrors create page image area styling) */}
+          {/* Hero/Image Card */}
           <View style={styles.heroCard}>
             <Image
               source={scholarship?.image_url ? { uri: scholarship.image_url } : require('@/assets/images/iskolar-logo.png')}
@@ -136,7 +102,7 @@ export default function ScholarshipDetailsPage() {
             <Text style={styles.titleText}>{scholarship?.title}</Text>
             <View style={styles.metaRow}>
               <Ionicons name="business-outline" size={16} color="#6B7280" />
-              <Text style={styles.metaText}>{scholarship?.sponsor?.organization_name || 'Your Organization'}</Text>
+              <Text style={styles.metaText}>{scholarship?.sponsor?.organization_name || 'Unknown Sponsor'}</Text>
             </View>
             <View style={styles.metaRow}>
               <Ionicons name="calendar-outline" size={16} color="#6B7280" />
@@ -144,12 +110,8 @@ export default function ScholarshipDetailsPage() {
             </View>
           </View>
 
-          {/* Metrics Row (styled akin to create inputs/cards) */}
+          {/* Metrics Row */}
           <View style={styles.row}> 
-            <View style={[styles.metricBox, { borderColor: '#FF6B6B' }]}>
-              <Text style={styles.metricLabel}>Applications</Text>
-              <Text style={[styles.metricValue, { color: '#FF6B6B' }]}>{scholarship.applications_count}</Text>
-            </View>
             <View style={[styles.metricBox, { borderColor: '#31D0AA' }]}>
               <Text style={styles.metricLabel}>Amount</Text>
               <Text style={[styles.metricValue, { color: '#31D0AA' }]}>{formatAmount(scholarship?.total_amount)}</Text>
@@ -174,7 +136,9 @@ export default function ScholarshipDetailsPage() {
               <Text style={styles.label}>Criteria</Text>
               <View style={styles.tagsContainer}>
                 {scholarship.criteria.map((c: string, idx: number) => (
-                  <View key={idx} style={styles.tag}><Text style={styles.tagText}>{c.replace(/_/g, ' ')}</Text></View>
+                  <View key={idx} style={styles.tag}>
+                    <Text style={styles.tagText}>{c.replace(/_/g, ' ')}</Text>
+                  </View>
                 ))}
               </View>
             </View>
@@ -186,23 +150,11 @@ export default function ScholarshipDetailsPage() {
               <Text style={styles.label}>Required Documents</Text>
               <View style={styles.tagsContainer}>
                 {scholarship.required_documents.map((d: string, idx: number) => (
-                  <View key={idx} style={styles.tag}><Text style={styles.tagText}>{d.replace(/_/g, ' ')}</Text></View>
+                  <View key={idx} style={styles.tag}>
+                    <Text style={styles.tagText}>{d.replace(/_/g, ' ')}</Text>
+                  </View>
                 ))}
               </View>
-            </View>
-          )}
-
-          {/* Actions - Only show edit/delete if user owns this scholarship */}
-          {isOwner && (
-            <View style={styles.actionsRow}>
-              <Pressable style={[styles.actionBtn, styles.editBtn]} onPress={onEdit}>
-                <Ionicons name="create-outline" size={16} color="#F0F7FF" />
-                <Text style={styles.actionText}>Edit</Text>
-              </Pressable>
-              <Pressable style={[styles.actionBtn, styles.deleteBtn]} onPress={onDelete}>
-                <Ionicons name="trash-outline" size={16} color="#F0F7FF" />
-                <Text style={styles.actionText}>Delete</Text>
-              </Pressable>
             </View>
           )}
 
@@ -369,36 +321,5 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: '#3A52A6',
   },
-  
-  actionsRow: {
-    flexDirection: 'row',
-    gap: 10,
-    marginTop: 14,
-  },
-  
-  actionBtn: {
-    flex: 1,
-    height: 44,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 8,
-  },
-  
-  editBtn: {
-    backgroundColor: '#3A52A6',
-  },
-  
-  deleteBtn: {
-    backgroundColor: '#EF4444',
-  },
-  
-  actionText: {
-    color: '#F0F7FF',
-    fontFamily: 'BreeSerif_400Regular',
-    fontSize: 14,
-  },
 });
-
 

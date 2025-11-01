@@ -72,7 +72,7 @@ export default function MyScholarshipsPage() {
   }, [fetchScholarships]);
 
   const handleScholarshipPress = (scholarshipId: string) => {
-    router.push(`/scholarship/${scholarshipId}` as any);
+    router.push(`/(sponsor)/scholarship/${scholarshipId}` as any);
   };
 
   const formatText = (text: string): string => {

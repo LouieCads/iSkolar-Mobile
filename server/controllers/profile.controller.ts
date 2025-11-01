@@ -122,6 +122,7 @@ export const getProfile = async (req: AuthenticatedRequest, res: Response) => {
       if (sponsor) {
         profileData = {
           ...profileData,
+          sponsor_id: sponsor.sponsor_id,
           organization_name: sponsor.organization_name,
           organization_type: sponsor.organization_type,
           official_email: sponsor.official_email,

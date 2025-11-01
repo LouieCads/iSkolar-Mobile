@@ -69,7 +69,7 @@ export default function DiscoverPage() {
   }, [fetchScholarships]);
 
   const handleScholarshipPress = (scholarshipId: string) => {
-    router.push(`/scholarship/${scholarshipId}` as any);
+    router.push(`/(student)/scholarship/${scholarshipId}` as any);
   };
 
   const formatText = (text: string): string => {

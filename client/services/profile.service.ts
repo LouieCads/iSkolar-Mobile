@@ -15,6 +15,7 @@ export interface ProfileData {
   contact_number?: string;
   has_completed_profile?: boolean;
   // Sponsor fields
+  sponsor_id?: string;
   organization_name?: string;
   organization_type?: string;
   official_email?: string;

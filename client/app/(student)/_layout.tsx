@@ -10,6 +10,7 @@ export default function Student() {
         <Stack.Screen name="home" />
         <Stack.Screen name="discover" />
         <Stack.Screen name="my-student-profile" />
+        <Stack.Screen name="scholarship/[id]" />
       </Stack>
       <StudentNav />
     </View>

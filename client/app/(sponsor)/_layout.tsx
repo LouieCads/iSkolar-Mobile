@@ -10,6 +10,8 @@ export default function Sponsor() {
         <Stack.Screen name="my-scholarships" />
         <Stack.Screen name="discover" />
         <Stack.Screen name="my-sponsor-profile" />
+        <Stack.Screen name="scholarship/[id]" />
+        <Stack.Screen name="scholarship/[id]/edit" />
       </Stack>
       <SponsorNav />
     </View>
