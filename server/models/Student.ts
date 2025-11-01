@@ -33,6 +33,10 @@ class Student extends Model<StudentAttributes, StudentCreationAttributes> implem
       foreignKey: "user_id",
       as: "user",
     });
+    Student.hasMany(models.ScholarshipApplication, {
+      foreignKey: "scholarship_application_id",
+      as: "scholarship_application",
+    });
   }
 }
 

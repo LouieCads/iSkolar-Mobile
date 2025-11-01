@@ -44,6 +44,10 @@ class Scholarship extends Model<ScholarshipAttributes, ScholarshipCreationAttrib
       foreignKey: "sponsor_id",
       as: "sponsor",
     });
+    Scholarship.hasMany(models.ScholarshipApplication, {
+      foreignKey: "scholarship_id",
+      as: "scholarship_application",
+    });
   }
 }
 
@@ -67,7 +71,7 @@ Scholarship.init(
     status: {
       type: DataTypes.ENUM("draft", "active", "closed", "suspended", "archived"),
       allowNull: true,
-      defaultValue: "draft",
+      defaultValue: "active",
     },
     image_url: {
       type: DataTypes.STRING(1000),
