@@ -31,6 +31,8 @@ export default function ScholarshipManagementCard({
   tags = [],
   onPress,
 }: ScholarshipManagementCardProps) {
+  const amountPerScholar = slots > 0 ? amount / slots : amount;
+
   const formatAmount = (value: number) => {
     return `₱ ${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
@@ -119,7 +121,7 @@ export default function ScholarshipManagementCard({
                 <Ionicons name="cash-outline" size={12} color="#31D0AA" />
                 <Text style={styles.detailLabel}>Amount</Text>
               </View>
-              <Text style={styles.amountText}>{formatAmount(amount)}</Text>
+              <Text style={styles.amountText}>{formatAmount(amountPerScholar)}</Text>
               <Text style={styles.subText}>per scholar</Text>
             </View>
 

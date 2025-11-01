@@ -3,7 +3,7 @@ import { View, Text, StyleSheet } from 'react-native';
 interface Scholarship {
   status: string;
   total_slot: number;
-  total_amount: number;
+  total_amount: number;  
 }
 
 interface ScholarshipMetricsProps {
@@ -12,18 +12,23 @@ interface ScholarshipMetricsProps {
 
 export default function ScholarshipMetrics({ scholarships }: ScholarshipMetricsProps) {
   const formatValue = (value: number): string => {
-    if (value >= 1000000) {
-      return `₱${(value / 1000000).toFixed(1)}M`;
-    } else if (value >= 1000) {
-      return `₱${(value / 1000).toFixed(1)}K`;
+    const numValue = Number(value) || 0;
+    
+    if (numValue >= 1000000) {
+      return `₱${(numValue / 1000000).toFixed(1)}M`;
+    } else if (numValue >= 1000) {
+      return `₱${(numValue / 1000).toFixed(1)}K`;
     }
-    return `₱${value.toLocaleString()}`;
+    return `₱${numValue.toLocaleString('en-PH', { 
+      minimumFractionDigits: 0, 
+      maximumFractionDigits: 0 
+    })}`;
   };
 
   const metrics = {
     active: scholarships.filter(s => s.status === 'active').length,
-    totalSlots: scholarships.reduce((sum, s) => sum + s.total_slot, 0),
-    totalValue: scholarships.reduce((sum, s) => sum + (s.total_amount * s.total_slot), 0)
+    totalSlots: scholarships.reduce((sum, s) => sum + (Number(s.total_slot) || 0), 0),
+    totalValue: scholarships.reduce((sum, s) => sum + (Number(s.total_amount) || 0), 0)
   };
 
   return (
@@ -36,7 +41,7 @@ export default function ScholarshipMetrics({ scholarships }: ScholarshipMetricsP
       <View style={styles.metItem}>
         <View style={[styles.metDot, { backgroundColor: '#607EF2' }]} />
         <Text style={styles.metLabel}>Slots</Text>
-        <Text style={styles.metValue}>{metrics.totalSlots.toLocaleString()}</Text>
+        <Text style={styles.metValue}>{metrics.totalSlots}</Text>
       </View>
       <View style={styles.metItem}>
         <View style={[styles.metDot, { backgroundColor: '#FF6B6B' }]} />

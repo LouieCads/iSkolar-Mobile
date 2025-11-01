@@ -45,10 +45,14 @@ export default function ScholarshipDetailsPage() {
     fetchDetails();
   }, [fetchDetails]);
 
+  const amountPerScholar = scholarship?.total_slot > 0 
+    ? scholarship.total_amount / scholarship.total_slot 
+    : scholarship?.total_amount;
+
   const formatAmount = (value?: number | string) => {
     const num = typeof value === 'string' ? parseFloat(value) : value;
     if (typeof num !== 'number' || isNaN(num)) return '₱ 0.00';
-    return `₱${num.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `₱ ${num.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
 
   const formatDate = (dateString?: string) => {
@@ -114,11 +118,13 @@ export default function ScholarshipDetailsPage() {
           <View style={styles.row}> 
             <View style={[styles.metricBox, { borderColor: '#31D0AA' }]}>
               <Text style={styles.metricLabel}>Amount</Text>
-              <Text style={[styles.metricValue, { color: '#31D0AA' }]}>{formatAmount(scholarship?.total_amount)}</Text>
+              <Text style={[styles.metricValue, { color: '#31D0AA' }]}>{formatAmount(amountPerScholar)}</Text>
+              <Text style={styles.perScholar}>per scholar</Text>
             </View>
             <View style={[styles.metricBox, { borderColor: '#607EF2' }]}>
               <Text style={styles.metricLabel}>Slots</Text>
               <Text style={[styles.metricValue, { color: '#607EF2' }]}>{scholarship?.total_slot}</Text>
+              <Text style={styles.perScholar}>scholars</Text>
             </View>
           </View>
 
@@ -290,6 +296,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   
+  perScholar: {
+    fontFamily: 'BreeSerif_400Regular',
+    fontSize: 11,
+    color: '#666',
+  },
+  
   label: {
     fontFamily: 'BreeSerif_400Regular',
     fontSize: 12,
@@ -322,4 +334,3 @@ const styles = StyleSheet.create({
     color: '#3A52A6',
   },
 });
-

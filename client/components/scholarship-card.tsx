@@ -8,8 +8,8 @@ interface ScholarshipCardProps {
   imageUrl?: string;
   sponsorName: string;
   deadline?: string;
-  amount: number;
-  slots: number;
+  amount: number;  
+  slots: number;   
   criteria: string[];
   documents: string[];
   tags: string[];
@@ -29,6 +29,8 @@ export default function ScholarshipCard({
   tags,
   onPress
 }: ScholarshipCardProps) {
+  const amountPerScholar = slots > 0 ? amount / slots : amount;
+
   const formatAmount = (value: number) => {
     return `₱ ${value.toLocaleString('en-PH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
   };
@@ -106,7 +108,7 @@ export default function ScholarshipCard({
                 <Ionicons name="cash-outline" size={16} color="#31D0AA" />
                 <Text style={styles.detailLabel}>Amount</Text>
               </View>
-              <Text style={styles.amountText}>{formatAmount(amount)}</Text>
+              <Text style={styles.amountText}>{formatAmount(amountPerScholar)}</Text>
               <Text style={styles.perScholar}>per scholar</Text>
             </View>
 
@@ -205,7 +207,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   tag: {
-    backgroundColor: 'rgbacardBody255, 255, 255, 0.2)',
+    backgroundColor: 'rgba(255, 255, 255, 0.2)',
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 5,
